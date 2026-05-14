@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { CountdownTimer } from "@/components/scan/countdown-timer";
 import { PricingCard } from "@/components/scan/pricing-card";
 import { ZoneTags } from "@/components/scan/zone-tags";
+import { FaceDiagram } from "@/components/scan/face-diagram";
 import { PRICING } from "@/lib/pricing";
 import type { AiResultType } from "@/lib/validation";
 
@@ -89,6 +90,9 @@ export function ResultView({ name, result, expiresAt }: ResultViewProps) {
       <div>
         <h1 className="text-2xl font-semibold">{displayName}, разбор готов</h1>
       </div>
+
+      {/* Face diagram */}
+      <FaceDiagram zones={result.zone_analysis} />
 
       {/* Zone tags */}
       <ZoneTags zones={result.zone_analysis} />
