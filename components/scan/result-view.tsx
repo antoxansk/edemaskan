@@ -34,12 +34,13 @@ const UPSELL_URL = process.env.NEXT_PUBLIC_SITE_URL
   : "https://lid.nutritionist4day.ru/lymphatic-system_avto";
 
 type ResultViewProps = {
-  name:     string | null;
-  result:   AiResultType;
-  expiresAt: string | null;
+  name:            string | null;
+  result:          AiResultType;
+  expiresAt:       string | null;
+  frontalPhotoUrl?: string | null;
 };
 
-export function ResultView({ name, result, expiresAt }: ResultViewProps) {
+export function ResultView({ name, result, expiresAt, frontalPhotoUrl }: ResultViewProps) {
   const displayName = name ?? result.user_name ?? "Марина";
 
   if (result.red_flag) {
@@ -92,7 +93,7 @@ export function ResultView({ name, result, expiresAt }: ResultViewProps) {
       </div>
 
       {/* Face diagram */}
-      <FaceDiagram zones={result.zone_analysis} />
+      <FaceDiagram zones={result.zone_analysis} frontalPhotoUrl={frontalPhotoUrl} />
 
       {/* Zone tags */}
       <ZoneTags zones={result.zone_analysis} />

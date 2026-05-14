@@ -29,7 +29,7 @@ export default function AnalyzingPage() {
   const controllerRef = useRef<AbortController | null>(null);
   const elapsedRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function runAnalysis(attemptNum: number) {
+  async function runAnalysis(_attemptNum: number) {
     setAnalyzing(true);
     setError(null);
     setElapsed(0);
@@ -152,10 +152,18 @@ export default function AnalyzingPage() {
     );
   }
 
+  const countdown = Math.max(0, 30 - elapsed);
+
   return (
-    <div className="flex flex-col items-center gap-8 text-center pt-8">
-      <div className="relative w-32 h-32">
-        <svg className="w-full h-full -rotate-90 animate-spin-slow" viewBox="0 0 100 100"
+    <div className="flex flex-col items-center gap-6 text-center pt-8">
+      {/* Countdown */}
+      <div className="text-4xl font-bold tabular-nums text-primary">
+        {countdown}
+        <span className="text-lg font-normal text-muted-foreground ml-1">с</span>
+      </div>
+
+      <div className="relative w-28 h-28">
+        <svg className="w-full h-full" viewBox="0 0 100 100"
           style={{ animation: "spin 3s linear infinite" }}>
           <circle cx="50" cy="50" r="44" className="fill-none stroke-muted" strokeWidth="6" />
           <circle
@@ -174,7 +182,6 @@ export default function AnalyzingPage() {
 
       <div className="min-h-[3rem]">
         <p className="text-lg font-medium transition-all duration-500">{MESSAGES[msgIndex]}</p>
-        <p className="text-sm text-muted-foreground mt-1">Обычно занимает 20–30 секунд</p>
       </div>
 
       {elapsed >= 60 && analyzing && (

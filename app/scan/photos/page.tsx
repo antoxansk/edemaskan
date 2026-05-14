@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan, type PhotoSlot } from "@/components/scan/scan-provider";
 import { compressPhoto, validatePhotoSize } from "@/lib/photo-compression";
+import { PhotoPoseIllustration } from "@/components/scan/photo-pose-illustration";
 
 const SLOTS: { slot: PhotoSlot; label: string; hint: string }[] = [
   { slot: "frontal",             label: "Анфас",         hint: "Смотрите прямо в камеру" },
@@ -52,7 +53,7 @@ function PhotoCard({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="relative w-full aspect-[3/4] rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-2 transition-colors hover:border-primary hover:bg-muted/50 overflow-hidden"
+        className="relative w-full aspect-3/4 rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-2 transition-colors hover:border-primary hover:bg-muted/50 overflow-hidden"
       >
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -60,11 +61,13 @@ function PhotoCard({
         ) : compressing ? (
           <Loader2 size={28} className="animate-spin text-muted-foreground" />
         ) : (
-          <>
-            <Camera size={28} className="text-muted-foreground" />
-            <span className="text-xs font-medium text-center px-2">{label}</span>
-            <span className="text-xs text-muted-foreground text-center px-2">{hint}</span>
-          </>
+          <div className="flex flex-col items-center gap-1 w-full h-full px-2 pt-2">
+            <div className="flex-1 w-full flex items-center justify-center">
+              <PhotoPoseIllustration slot={slot} />
+            </div>
+            <span className="text-xs font-medium text-center">{label}</span>
+            <span className="text-xs text-muted-foreground text-center pb-2">{hint}</span>
+          </div>
         )}
       </button>
 

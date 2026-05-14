@@ -6,20 +6,16 @@ type Zones = NonNullable<AiResultType["zone_analysis"]>;
 type ZoneEntry = Zones[keyof Zones];
 
 function zoneStyle(z: ZoneEntry | undefined): { fill: string; stroke: string } {
-  if (!z?.visible || !z.intensity || z.intensity === "none") {
-    return { fill: "rgba(203,213,225,0.15)", stroke: "#cbd5e1" };
-  }
+  if (!z?.visible || !z.intensity || z.intensity === "none") return { fill: "transparent", stroke: "transparent" };
   const map = {
-    mild:       { fill: "rgba(167,243,208,0.50)", stroke: "#34d399" },
-    moderate:   { fill: "rgba(253,230,138,0.60)", stroke: "#f59e0b" },
-    pronounced: { fill: "rgba(252,165,165,0.65)", stroke: "#f87171" },
+    mild:       { fill: "rgba(167,243,208,0.40)", stroke: "rgba(52,211,153,0.70)" },
+    moderate:   { fill: "rgba(253,230,138,0.45)", stroke: "rgba(245,158,11,0.75)" },
+    pronounced: { fill: "rgba(252,165,165,0.50)", stroke: "rgba(248,113,113,0.80)" },
   };
-  return map[z.intensity] ?? { fill: "rgba(203,213,225,0.15)", stroke: "#cbd5e1" };
+  return map[z.intensity] ?? { fill: "transparent", stroke: "transparent" };
 }
 
-export function FaceDiagram({ zones }: { zones: AiResultType["zone_analysis"] }) {
-  if (!zones) return null;
-
+function ZoneOverlaySvg({ zones }: { zones: NonNullable<AiResultType["zone_analysis"]> }) {
   const forehead    = zoneStyle(zones.forehead);
   const brows       = zoneStyle(zones.brows);
   const periorbital = zoneStyle(zones.periorbital);
@@ -29,75 +25,67 @@ export function FaceDiagram({ zones }: { zones: AiResultType["zone_analysis"] })
   const chin        = zoneStyle(zones.chin);
   const neck        = zoneStyle(zones.neck);
 
+  // Coordinates are % of viewBox 100x133 (3:4 portrait ratio)
+  return (
+    <svg viewBox="0 0 100 133" className="absolute inset-0 w-full h-full" fill="none">
+      {/* Forehead: top of face */}
+      <ellipse cx="50" cy="22" rx="28" ry="10"
+        fill={forehead.fill} stroke={forehead.stroke} strokeWidth="1" />
+      {/* Brows */}
+      <rect x="22" y="31" width="56" height="8" rx="4"
+        fill={brows.fill} stroke={brows.stroke} strokeWidth="1" />
+      {/* Periorbital - left */}
+      <ellipse cx="35" cy="44" rx="13" ry="8"
+        fill={periorbital.fill} stroke={periorbital.stroke} strokeWidth="1" />
+      {/* Periorbital - right */}
+      <ellipse cx="65" cy="44" rx="13" ry="8"
+        fill={periorbital.fill} stroke={periorbital.stroke} strokeWidth="1" />
+      {/* Face oval - cheeks */}
+      <ellipse cx="15" cy="60" rx="10" ry="20"
+        fill={face_oval.fill} stroke={face_oval.stroke} strokeWidth="1" />
+      <ellipse cx="85" cy="60" rx="10" ry="20"
+        fill={face_oval.fill} stroke={face_oval.stroke} strokeWidth="1" />
+      {/* Nasolabial */}
+      <ellipse cx="32" cy="62" rx="9" ry="14"
+        fill={nasolabial.fill} stroke={nasolabial.stroke} strokeWidth="1" />
+      <ellipse cx="68" cy="62" rx="9" ry="14"
+        fill={nasolabial.fill} stroke={nasolabial.stroke} strokeWidth="1" />
+      {/* Lips */}
+      <ellipse cx="50" cy="79" rx="18" ry="8"
+        fill={lips.fill} stroke={lips.stroke} strokeWidth="1" />
+      {/* Chin */}
+      <ellipse cx="50" cy="93" rx="22" ry="10"
+        fill={chin.fill} stroke={chin.stroke} strokeWidth="1" />
+      {/* Neck */}
+      <rect x="34" y="107" width="32" height="20" rx="6"
+        fill={neck.fill} stroke={neck.stroke} strokeWidth="1" />
+    </svg>
+  );
+}
+
+export function FaceDiagram({
+  zones,
+  frontalPhotoUrl,
+}: {
+  zones: AiResultType["zone_analysis"];
+  frontalPhotoUrl?: string | null;
+}) {
+  if (!zones) return null;
+
+  const hasPhoto = !!frontalPhotoUrl;
+
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg viewBox="0 0 160 250" className="w-44 h-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <clipPath id="face-clip">
-            <ellipse cx="80" cy="115" rx="64" ry="88" />
-          </clipPath>
-        </defs>
-
-        {/* Neck */}
-        <rect x="52" y="196" width="56" height="38" rx="10"
-          fill={neck.fill} stroke={neck.stroke} strokeWidth="1.5" />
-
-        {/* Face background */}
-        <ellipse cx="80" cy="115" rx="64" ry="88" fill="white" stroke="#e2e8f0" strokeWidth="1.5" />
-
-        {/* Zones clipped to face */}
-        <g clipPath="url(#face-clip)">
-          {/* Forehead */}
-          <ellipse cx="80" cy="50" rx="58" ry="28"
-            fill={forehead.fill} stroke={forehead.stroke} strokeWidth="1.2" />
-
-          {/* Brows */}
-          <rect x="26" y="74" width="108" height="18" rx="9"
-            fill={brows.fill} stroke={brows.stroke} strokeWidth="1.2" />
-
-          {/* Periorbital - left */}
-          <ellipse cx="54" cy="100" rx="22" ry="13"
-            fill={periorbital.fill} stroke={periorbital.stroke} strokeWidth="1.2" />
-          {/* Periorbital - right */}
-          <ellipse cx="106" cy="100" rx="22" ry="13"
-            fill={periorbital.fill} stroke={periorbital.stroke} strokeWidth="1.2" />
-
-          {/* Face oval / cheeks */}
-          <ellipse cx="22" cy="138" rx="18" ry="34"
-            fill={face_oval.fill} stroke={face_oval.stroke} strokeWidth="1.2" />
-          <ellipse cx="138" cy="138" rx="18" ry="34"
-            fill={face_oval.fill} stroke={face_oval.stroke} strokeWidth="1.2" />
-
-          {/* Nasolabial */}
-          <ellipse cx="52" cy="138" rx="14" ry="22"
-            fill={nasolabial.fill} stroke={nasolabial.stroke} strokeWidth="1.2" />
-          <ellipse cx="108" cy="138" rx="14" ry="22"
-            fill={nasolabial.fill} stroke={nasolabial.stroke} strokeWidth="1.2" />
-
-          {/* Lips */}
-          <ellipse cx="80" cy="162" rx="28" ry="13"
-            fill={lips.fill} stroke={lips.stroke} strokeWidth="1.2" />
-
-          {/* Chin */}
-          <ellipse cx="80" cy="188" rx="40" ry="18"
-            fill={chin.fill} stroke={chin.stroke} strokeWidth="1.2" />
-        </g>
-
-        {/* Face outline on top */}
-        <ellipse cx="80" cy="115" rx="64" ry="88" fill="none" stroke="#94a3b8" strokeWidth="1.5" />
-
-        {/* Zone labels */}
-        <text x="80" y="52"  textAnchor="middle" fontSize="7.5" fill="#475569" fontFamily="system-ui">Лоб</text>
-        <text x="80" y="85"  textAnchor="middle" fontSize="7.5" fill="#475569" fontFamily="system-ui">Брови</text>
-        <text x="80" y="101" textAnchor="middle" fontSize="7"   fill="#475569" fontFamily="system-ui">Периорб.</text>
-        <text x="22" y="140" textAnchor="middle" fontSize="6.5" fill="#475569" fontFamily="system-ui">Овал</text>
-        <text x="138" y="140" textAnchor="middle" fontSize="6.5" fill="#475569" fontFamily="system-ui">Овал</text>
-        <text x="52"  y="140" textAnchor="middle" fontSize="6.5" fill="#475569" fontFamily="system-ui">НГС</text>
-        <text x="108" y="140" textAnchor="middle" fontSize="6.5" fill="#475569" fontFamily="system-ui">НГС</text>
-        <text x="80" y="164" textAnchor="middle" fontSize="7.5" fill="#475569" fontFamily="system-ui">Губы</text>
-        <text x="80" y="190" textAnchor="middle" fontSize="7.5" fill="#475569" fontFamily="system-ui">Подбородок</text>
-        <text x="80" y="222" textAnchor="middle" fontSize="7.5" fill="#475569" fontFamily="system-ui">Шея</text>
-      </svg>
+      <div className="relative w-44 mx-auto rounded-2xl overflow-hidden border border-border"
+        style={{ aspectRatio: "3/4" }}>
+        {hasPhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={frontalPhotoUrl!} alt="Анализ лица" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-muted" />
+        )}
+        <ZoneOverlaySvg zones={zones} />
+      </div>
 
       {/* Legend */}
       <div className="flex gap-3 text-xs text-muted-foreground">

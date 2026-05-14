@@ -9,7 +9,8 @@ import type { AiResultType } from "@/lib/validation";
 
 export default function ResultPage() {
   const router   = useRouter();
-  const { aiResult } = useScan();
+  const { aiResult, photos } = useScan();
+  const frontalPhoto = photos.find((p) => p.slot === "frontal")?.previewUrl ?? null;
   const [result, setResult]     = useState<AiResultType | null>(aiResult);
   const [name, setName]         = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -74,5 +75,5 @@ export default function ResultPage() {
 
   if (!result) return null;
 
-  return <ResultView name={name} result={result} expiresAt={expiresAt} />;
+  return <ResultView name={name} result={result} expiresAt={expiresAt} frontalPhotoUrl={frontalPhoto} />;
 }
