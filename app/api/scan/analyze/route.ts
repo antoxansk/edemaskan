@@ -8,7 +8,7 @@ import { callOpenRouter } from "@/lib/openrouter";
 import { sendErrorAlert } from "@/lib/telegram";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
-const MAX_PHOTO_BYTES = 800 * 1024;
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // 4 MB — client compresses, server just guards against huge uploads
 
 function getIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
