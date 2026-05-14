@@ -64,7 +64,7 @@ export const AiResultSchema = z.object({
     lips_purse:  ZoneAnalysis,
     chin:        ZoneAnalysis,
     neck:        ZoneAnalysis,
-  }),
+  }).nullable(),
   primary_cause: z
     .object({
       key:                  z.enum(["lymph_stasis", "parasitic_intoxication", "iron_deficiency", "water_salt_imbalance", "hormonal_imbalance"]),

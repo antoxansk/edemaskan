@@ -228,6 +228,7 @@ export function ResultView({ name, result, expiresAt }: ResultViewProps) {
 }
 
 function ZoneTable({ zones }: { zones: AiResultType["zone_analysis"] }) {
+  if (!zones) return null;
   return (
     <div className="rounded-2xl border border-border overflow-hidden">
       {Object.entries(ZONE_LABELS).map(([key, label]) => {

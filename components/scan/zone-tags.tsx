@@ -23,6 +23,8 @@ export function ZoneTags({ zones }: ZoneTagsProps) {
     document.getElementById(`zone-${zone}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  if (!zones) return null;
+
   return (
     <div className="flex flex-wrap gap-2">
       {Object.entries(ZONE_LABELS).map(([key, label]) => {
