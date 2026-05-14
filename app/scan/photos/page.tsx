@@ -121,7 +121,7 @@ export default function PhotosPage() {
       toast.error("Фото слишком большое после сжатия. Попробуйте другое.");
       return;
     }
-    setPhoto(slot, file, compressed.dataUrl, compressed.sizeBytes);
+    setPhoto(slot, compressed.file, compressed.dataUrl, compressed.sizeBytes);
   }
 
   return (
