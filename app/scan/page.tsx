@@ -104,14 +104,14 @@ function ScanPageContent() {
             id="consent-pdn"
             checked={consentPdn}
             onCheckedChange={(v) => setConsentPdn(v === true)}
-            className="mt-0.5"
+            className="mt-0.5 shrink-0"
           />
-          <Label htmlFor="consent-pdn" className="text-sm leading-relaxed cursor-pointer">
+          <span className="text-sm leading-relaxed">
             Я ознакомлен(а) с{" "}
             <Link href="/legal/privacy" target="_blank" rel="noopener" className="underline text-primary">
               Политикой обработки персональных данных
             </Link>
-          </Label>
+          </span>
         </label>
 
         <label className="flex items-start gap-3 cursor-pointer">
@@ -119,15 +119,15 @@ function ScanPageContent() {
             id="consent-scan"
             checked={consentScan}
             onCheckedChange={(v) => setConsentScan(v === true)}
-            className="mt-0.5"
+            className="mt-0.5 shrink-0"
           />
-          <Label htmlFor="consent-scan" className="text-sm leading-relaxed cursor-pointer">
+          <span className="text-sm leading-relaxed">
             Я ознакомлен(а) с{" "}
             <Link href="/legal/scan-policy" target="_blank" rel="noopener" className="underline text-primary">
               Политикой использования сервиса анализа лица
             </Link>
             . Фото не сохраняются и не используются для идентификации.
-          </Label>
+          </span>
         </label>
       </div>
 

@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Smartphone } from "lucide-react";
 
@@ -23,10 +24,8 @@ function DesktopFallbackContent() {
         <p className="text-sm text-muted-foreground">Наведите камеру телефона на QR-код, чтобы продолжить</p>
       </div>
 
-      <div className="w-48 h-48 rounded-2xl border-2 border-border bg-muted flex items-center justify-center">
-        <p className="text-xs text-muted-foreground text-center px-3 break-all">
-          {scanUrl}
-        </p>
+      <div className="w-48 h-48 rounded-2xl border-2 border-border bg-white flex items-center justify-center p-3">
+        <QRCodeSVG value={scanUrl} size={168} level="M" />
       </div>
 
       <div className="flex flex-col gap-3 w-full max-w-xs">

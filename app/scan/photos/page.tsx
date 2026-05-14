@@ -9,22 +9,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan, type PhotoSlot } from "@/components/scan/scan-provider";
 import { compressPhoto, validatePhotoSize } from "@/lib/photo-compression";
 
-const SLOTS: { slot: PhotoSlot; label: string }[] = [
-  { slot: "frontal",             label: "Лицо анфас (смотрите прямо в камеру)" },
-  { slot: "three_quarter_left",  label: "Поворот ¾ слева" },
-  { slot: "three_quarter_right", label: "Поворот ¾ справа" },
-  { slot: "tilted_down",         label: "Наклон головы вниз" },
+const SLOTS: { slot: PhotoSlot; label: string; hint: string }[] = [
+  { slot: "frontal",             label: "Анфас",         hint: "Смотрите прямо в камеру" },
+  { slot: "three_quarter_left",  label: "Поворот влево", hint: "Повернитесь на 45° влево" },
+  { slot: "three_quarter_right", label: "Поворот вправо",hint: "Повернитесь на 45° вправо" },
+  { slot: "tilted_down",         label: "Взгляд вниз",   hint: "Наклоните голову вниз" },
 ];
 
 const ACCEPTED_TYPES = "image/jpeg,image/png,image/webp,image/heic,image/heif";
 const MAX_RAW_BYTES  = 15 * 1024 * 1024;
 
 function PhotoCard({
-  slot, label, photo, isDesktop,
+  slot, label, hint, photo, isDesktop,
   onSelect, onRemove,
 }: {
   slot:       PhotoSlot;
   label:      string;
+  hint:       string;
   photo?:     { previewUrl: string };
   isDesktop:  boolean;
   onSelect:   (slot: PhotoSlot, file: File) => Promise<void>;
@@ -61,7 +62,8 @@ function PhotoCard({
         ) : (
           <>
             <Camera size={28} className="text-muted-foreground" />
-            <span className="text-xs text-muted-foreground text-center px-2">{label}</span>
+            <span className="text-xs font-medium text-center px-2">{label}</span>
+            <span className="text-xs text-muted-foreground text-center px-2">{hint}</span>
           </>
         )}
       </button>
@@ -141,11 +143,12 @@ export default function PhotosPage() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {SLOTS.map(({ slot, label }) => (
+        {SLOTS.map(({ slot, label, hint }) => (
           <PhotoCard
             key={slot}
             slot={slot}
             label={label}
+            hint={hint}
             photo={photoMap[slot]}
             isDesktop={isDesktop}
             onSelect={handleSelect}
