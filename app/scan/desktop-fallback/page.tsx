@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Smartphone } from "lucide-react";
 
-export default function DesktopFallbackPage() {
+function DesktopFallbackContent() {
   const params   = useSearchParams();
   const scenario = params.get("from") ?? "morning-face";
   const siteUrl  = process.env.NEXT_PUBLIC_SITE_URL ?? "https://edemaskan.lid.nutritionist4day.ru";
@@ -22,14 +23,11 @@ export default function DesktopFallbackPage() {
         <p className="text-sm text-muted-foreground">Наведите камеру телефона на QR-код, чтобы продолжить</p>
       </div>
 
-      {/* QR placeholder — qrcode.react will be added when installed */}
       <div className="w-48 h-48 rounded-2xl border-2 border-border bg-muted flex items-center justify-center">
-        <p className="text-xs text-muted-foreground text-center px-3">
-          QR: {scanUrl}
+        <p className="text-xs text-muted-foreground text-center px-3 break-all">
+          {scanUrl}
         </p>
       </div>
-
-      <p className="text-xs text-muted-foreground max-w-xs">{scanUrl}</p>
 
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <Button asChild variant="outline">
@@ -44,5 +42,13 @@ export default function DesktopFallbackPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function DesktopFallbackPage() {
+  return (
+    <Suspense>
+      <DesktopFallbackContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -23,12 +23,12 @@ function readUtm() {
   }
 }
 
-export default function ScanPage() {
+function ScanPageContent() {
   const router = useRouter();
   const params = useSearchParams();
 
   const fromParam = params.get("from") ?? "morning-face";
-  const scenario = isValidScenario(fromParam) ? fromParam : "morning-face";
+  const scenario  = isValidScenario(fromParam) ? fromParam : "morning-face";
 
   const [consentPdn, setConsentPdn]   = useState(false);
   const [consentScan, setConsentScan] = useState(false);
@@ -54,7 +54,12 @@ export default function ScanPage() {
         }),
       });
 
-      const data = (await res.json()) as { success?: boolean; session_id?: string; session_token?: string; error?: { code: string; message: string } };
+      const data = (await res.json()) as {
+        success?: boolean;
+        session_id?: string;
+        session_token?: string;
+        error?: { code: string; message: string };
+      };
 
       if (!res.ok || !data.success) {
         toast.error(data.error?.message ?? "Не удалось начать. Попробуйте обновить страницу.");
@@ -62,11 +67,11 @@ export default function ScanPage() {
       }
 
       try {
-        sessionStorage.setItem("edm_session_id",    data.session_id!);
+        sessionStorage.setItem("edm_session_id",     data.session_id!);
         sessionStorage.setItem("edm_session_token",  data.session_token!);
         sessionStorage.setItem("edm_entry_scenario", scenario);
       } catch {
-        // Safari Private Mode — fallback to cookie
+        // Safari Private Mode fallback
         document.cookie = `edm_session_id=${data.session_id}; path=/; samesite=lax`;
         document.cookie = `edm_session_token=${data.session_token}; path=/; samesite=lax`;
       }
@@ -142,5 +147,13 @@ export default function ScanPage() {
         </p>
       )}
     </div>
+  );
+}
+
+export default function ScanPage() {
+  return (
+    <Suspense>
+      <ScanPageContent />
+    </Suspense>
   );
 }
