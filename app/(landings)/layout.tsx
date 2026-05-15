@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FooterDisclaimer } from "@/components/shared/footer-disclaimer";
+import { LandingPageTracker } from "@/components/shared/landing-tracker";
 
 export default function LandingsLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function LandingsLayout({ children }: { children: React.ReactNode
         </Link>
       </header>
 
+      <LandingPageTracker />
       <main className="flex-1">{children}</main>
 
       <FooterDisclaimer />

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ymGoal } from "@/lib/ym";
 
 const QUESTIONS = [
   {
@@ -84,6 +85,7 @@ export default function QuestionnairePage() {
 
   function proceed() {
     if (!allDone) return;
+    ymGoal("questionnaire_completed");
     router.push("/scan/analyzing");
   }
 

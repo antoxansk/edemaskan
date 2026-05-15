@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { ResultView } from "@/components/scan/result-view";
 import { useScan } from "@/components/scan/scan-provider";
+import { ymGoal } from "@/lib/ym";
 import type { AiResultType } from "@/lib/validation";
 
 export default function ResultPage() {
@@ -64,6 +65,10 @@ export default function ResultPage() {
       }
     })();
   }, [router, aiResult]);
+
+  useEffect(() => {
+    if (result) ymGoal("result_view", { red_flag: result.red_flag ? "1" : "0" });
+  }, [result]);
 
   if (loading) {
     return (
