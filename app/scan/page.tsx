@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -26,14 +26,23 @@ function ScanPageContent() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const fromParam = params.get("from") ?? "morning-face";
-  const scenario  = isValidScenario(fromParam) ? fromParam : "morning-face";
+  const fromParam  = params.get("from") ?? "morning-face";
+  const scenario   = isValidScenario(fromParam) ? fromParam : "morning-face";
+  const autoStart  = params.get("autostart") === "1";
 
-  const [consentPdn, setConsentPdn]   = useState(false);
-  const [consentScan, setConsentScan] = useState(false);
+  const [consentPdn, setConsentPdn]   = useState(autoStart);
+  const [consentScan, setConsentScan] = useState(autoStart);
   const [loading, setLoading]         = useState(false);
 
   const canStart = consentPdn && consentScan;
+
+  // Auto-submit when coming from QR (autostart=1) — consent already given on desktop
+  useEffect(() => {
+    if (!autoStart) return;
+    const timer = setTimeout(() => { void handleStart(); }, 300);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   async function handleStart() {
     if (!canStart || loading) return;
@@ -103,7 +112,7 @@ function ScanPageContent() {
             id="consent-pdn"
             checked={consentPdn}
             onCheckedChange={(v) => setConsentPdn(v === true)}
-            className="mt-0.5 shrink-0"
+            className="mt-0.5 shrink-0 h-5 w-5"
           />
           <span className="text-sm leading-relaxed">
             Я ознакомлен(а) с{" "}
@@ -118,7 +127,7 @@ function ScanPageContent() {
             id="consent-scan"
             checked={consentScan}
             onCheckedChange={(v) => setConsentScan(v === true)}
-            className="mt-0.5 shrink-0"
+            className="mt-0.5 shrink-0 h-5 w-5"
           />
           <span className="text-sm leading-relaxed">
             Я ознакомлен(а) с{" "}
@@ -132,7 +141,7 @@ function ScanPageContent() {
 
       <Button
         size="lg"
-        className="w-full"
+        className="w-full h-14 text-lg"
         disabled={!canStart || loading}
         aria-describedby={!canStart ? "consent-hint" : undefined}
         onClick={handleStart}

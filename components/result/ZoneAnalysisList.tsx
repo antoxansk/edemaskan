@@ -35,7 +35,7 @@ export function ZoneAnalysisList({ zones }: Props) {
             <div
               key={key}
               id={`zone-${key}`}
-              className="rounded-2xl border border-border p-4 bg-bg-card transition-all duration-300"
+              className="rounded-2xl border border-border p-4 bg-bg-card transition-all duration-300 scroll-mt-4"
             >
               <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <span

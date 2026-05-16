@@ -15,7 +15,7 @@ function DesktopFallbackContent() {
   useEffect(() => {
     // Use actual current origin so the QR always points to the live server
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setScanUrl(`${window.location.origin}/scan?from=${scenario}`);
+    setScanUrl(`${window.location.origin}/scan?from=${scenario}&autostart=1`);
   }, [scenario]);
 
   return (
@@ -40,7 +40,7 @@ function DesktopFallbackContent() {
           </Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href={`/scan?from=${scenario}`}>
+          <Link href={`/scan?from=${scenario}&autostart=1`}>
             Я уже на телефоне
           </Link>
         </Button>
