@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan, type PhotoSlot } from "@/components/scan/scan-provider";
 import { compressPhoto, validatePhotoSize } from "@/lib/photo-compression";
-import { PhotoPoseIllustration } from "@/components/scan/photo-pose-illustration";
+
+const POSE_IMAGES: Record<PhotoSlot, string> = {
+  frontal:             "/poses/frontal.png",
+  three_quarter_left:  "/poses/three-quarter-left.png",
+  three_quarter_right: "/poses/three-quarter-right.png",
+  tilted_down:         "/poses/tilted-down.png",
+};
 
 const SLOTS: { slot: PhotoSlot; label: string; hint: string }[] = [
   { slot: "frontal",             label: "Анфас",         hint: "Смотрите прямо в камеру" },
@@ -53,21 +59,28 @@ function PhotoCard({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="relative w-full aspect-3/4 rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center gap-2 transition-colors hover:border-primary hover:bg-muted/50 overflow-hidden"
+        className="relative w-full aspect-3/4 rounded-2xl border border-border overflow-hidden transition-opacity hover:opacity-90"
       >
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo.previewUrl} alt={label} className="w-full h-full object-cover" />
         ) : compressing ? (
-          <Loader2 size={28} className="animate-spin text-muted-foreground" />
-        ) : (
-          <div className="flex flex-col items-center gap-1 w-full h-full px-2 pt-2">
-            <div className="flex-1 w-full flex items-center justify-center">
-              <PhotoPoseIllustration slot={slot} />
-            </div>
-            <span className="text-xs font-medium text-center">{label}</span>
-            <span className="text-xs text-muted-foreground text-center pb-2">{hint}</span>
+          <div className="w-full h-full flex items-center justify-center bg-muted/30">
+            <Loader2 size={28} className="animate-spin text-muted-foreground" />
           </div>
+        ) : (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={POSE_IMAGES[slot]}
+              alt={label}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/65 via-black/25 to-transparent pt-10 pb-3 px-3">
+              <p className="text-white font-semibold text-sm text-center leading-snug">{label}</p>
+              <p className="text-white/80 text-xs text-center mt-0.5">{hint}</p>
+            </div>
+          </>
         )}
       </button>
 
