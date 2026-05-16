@@ -31,6 +31,7 @@ export default function EmailPage() {
     // Read red_flag from stored ai_result or context
     const stored = sessionStorage.getItem("edm_ai_result");
     const result = aiResult ?? (stored ? JSON.parse(stored) : null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (result?.red_flag) setRedFlag(true);
   }, [router, aiResult]);
 

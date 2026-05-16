@@ -24,14 +24,14 @@ export default async function ResultByTokenPage({ params }: Props) {
   if (!data) notFound();
 
   return (
-    <div className="flex flex-col min-h-full">
-      <header className="border-b border-border px-4 py-3">
-        <Link href="/" className="text-base font-semibold text-primary hover:opacity-80 transition-opacity">
+    <div className="flex flex-col min-h-full bg-background">
+      <header className="border-b border-border px-4 py-3 bg-bg-card">
+        <Link href="/" className="font-display text-lg font-semibold text-primary hover:opacity-80 transition-opacity">
           Edemaskan
         </Link>
       </header>
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8">
+      <main className="flex-1 w-full">
         <ResultView
           name={data.name as string | null}
           result={data.ai_result as AiResultType}

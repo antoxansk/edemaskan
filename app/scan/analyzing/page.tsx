@@ -108,6 +108,7 @@ export default function AnalyzingPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void runAnalysis(1);
     setAttempt(1);
     return () => {

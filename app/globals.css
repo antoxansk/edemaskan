@@ -1,24 +1,66 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background:        oklch(0.99 0 0);
-  --color-foreground:        oklch(0.20 0.02 270);
-  --color-muted:             oklch(0.96 0.01 270);
-  --color-muted-foreground:  oklch(0.45 0.02 270);
-  --color-primary:           oklch(0.55 0.15 200);
-  --color-primary-foreground: oklch(0.99 0 0);
-  --color-accent:            oklch(0.70 0.13 60);
-  --color-accent-foreground: oklch(0.20 0.02 270);
-  --color-destructive:       oklch(0.58 0.20 25);
-  --color-success:           oklch(0.65 0.15 145);
-  --color-border:            oklch(0.92 0.01 270);
-  --color-ring:              oklch(0.55 0.15 200);
+  /* ====== ФОНЫ ====== */
+  --color-background:        #FBF7F0;
+  --color-bg:                #FBF7F0;
+  --color-bg-card:           #FFFFFF;
+  --color-bg-elevated:       #F5EFE4;
+  --color-bg-sage-soft:      #EDF2EE;
+  --color-muted:             #F5EFE4;
+  --color-muted-foreground:  #6B6660;
 
+  /* ====== PRIMARY — sage teal ====== */
+  --color-primary:            #6B9080;
+  --color-primary-hover:      #4F6F65;
+  --color-primary-muted:      #A4C3B2;
+  --color-primary-soft:       #CCE3DE;
+  --color-primary-foreground: #FBF7F0;
+
+  /* ====== ACCENT — warm coral ====== */
+  --color-accent:             #E07A5F;
+  --color-accent-hover:       #C5654A;
+  --color-accent-soft:        #F4D5C8;
+  --color-accent-foreground:  #FBF7F0;
+
+  /* ====== ТЕКСТ ====== */
+  --color-foreground:         #2D2A26;
+  --color-text:               #2D2A26;
+  --color-text-muted:         #6B6660;
+  --color-text-soft:          #9A938B;
+  --color-text-inverse:       #FBF7F0;
+
+  /* ====== СТАТУСЫ ====== */
+  --color-success:            #6B9080;
+  --color-warning:            #D4A574;
+  --color-destructive:        #BE6B5F;
+  --color-info:               #7BA098;
+  --color-error:              #BE6B5F;
+
+  /* ====== ГРАНИЦЫ ====== */
+  --color-border:             #E8E2D8;
+  --color-border-strong:      #C9C1B4;
+  --color-ring:               #6B9080;
+
+  /* ====== 8 ЗОН ЛИЦА ====== */
+  --zone-forehead:            #A8C9B9;
+  --zone-brows:               #B4D4C5;
+  --zone-periorbital:         #F0D78A;
+  --zone-nasolabial:          #F0B5B5;
+  --zone-face-oval:           #A8C9E0;
+  --zone-lips-purse:          #D5B8E0;
+  --zone-chin:                #F0C9A8;
+  --zone-neck:                #A0CFC8;
+
+  /* ====== РАДИУС ====== */
   --radius: 0.75rem;
-  --font-display: "Inter", system-ui, sans-serif;
-  --font-body:    "Inter", system-ui, sans-serif;
+
+  /* ====== ШРИФТЫ ====== */
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-body:    "Manrope", -apple-system, sans-serif;
 }
 
+/* ====== БАЗОВЫЕ СТИЛИ ====== */
 * {
   border-color: var(--color-border);
 }
@@ -27,6 +69,50 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-body);
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ====== УТИЛИТЫ ====== */
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-body    { font-family: var(--font-body); }
+
+  .shadow-soft { box-shadow: 0 2px 8px rgb(45 42 38 / 0.04), 0 1px 2px rgb(45 42 38 / 0.06); }
+  .shadow-card { box-shadow: 0 4px 16px rgb(45 42 38 / 0.06), 0 2px 4px rgb(45 42 38 / 0.04); }
+  .shadow-cta  { box-shadow: 0 8px 24px rgb(224 122 95 / 0.25); }
+
+  .bg-bg-card      { background-color: var(--color-bg-card); }
+  .bg-bg-elevated  { background-color: var(--color-bg-elevated); }
+  .bg-bg-sage-soft { background-color: var(--color-bg-sage-soft); }
+  .bg-accent-soft  { background-color: var(--color-accent-soft); }
+  .bg-primary-soft { background-color: var(--color-primary-soft); }
+
+  .text-text-muted   { color: var(--color-text-muted); }
+  .text-text-soft    { color: var(--color-text-soft); }
+  .text-text-inverse { color: var(--color-text-inverse); }
+  .text-accent       { color: var(--color-accent); }
+  .text-error        { color: var(--color-error); }
+  .text-warning      { color: var(--color-warning); }
+
+  .border-primary-soft { border-color: var(--color-primary-soft); }
+}
+
+/* ====== АНИМАЦИИ ====== */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 300ms ease-out;
+}
+
+/* ====== REDUCED MOTION ====== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Camera, RefreshCw, Loader2, Smartphone } from "lucide-react";
+import { RefreshCw, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan, type PhotoSlot } from "@/components/scan/scan-provider";
@@ -114,6 +114,7 @@ export default function PhotosPage() {
     // Detect desktop (no camera API)
     const noCamera = !navigator.mediaDevices?.getUserMedia;
     const bigScreen = window.innerWidth >= 1024;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsDesktop(noCamera || bigScreen);
   }, [router]);
 

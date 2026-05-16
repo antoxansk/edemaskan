@@ -1,5 +1,4 @@
 declare global {
-  // eslint-disable-next-line no-var
   var ym: ((id: number, method: string, ...args: unknown[]) => void) | undefined;
 }
 

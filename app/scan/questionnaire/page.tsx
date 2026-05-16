@@ -71,6 +71,7 @@ export default function QuestionnairePage() {
     // Restore from sessionStorage if returning
     try {
       const saved = sessionStorage.getItem("edm_answers");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved) setAnswers(JSON.parse(saved) as Record<string, string>);
     } catch { /* ignore */ }
   }, [router]);
