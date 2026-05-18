@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
+import { LiveCounter } from "@/components/landing/live-counter";
 
 type HeroProps = {
   scenario:   string;
@@ -32,9 +33,7 @@ export function Hero({ scenario, title, subtitle, ctaText, disclaimer }: HeroPro
           <Link href={ctaUrl}>{ctaText}</Link>
         </Button>
 
-        <p className="mt-3 text-sm font-medium text-emerald-700">
-          🟢 327 человек успешно прошли сканирование
-        </p>
+        <LiveCounter />
 
         <p className="mt-2 text-xs text-muted-foreground text-center">
           На основе методологии врачей УПДН · Совместно с Первым МГМУ им. И.М. Сеченова · 30 000+ человек прошли наши бесплатные материалы

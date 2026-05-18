@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useCounter } from "@/hooks/useCounter";
 
-type Cell =
+type StaticCell =
   | { type: "number"; value: number; suffix: string; label: string }
   | { type: "text";   text: string;                  label: string };
 
-const CELLS: Cell[] = [
-  { type: "number", value: 327,   suffix: "+", label: "успешных сканирований" },
+const STATIC_CELLS: StaticCell[] = [
+  // First cell value comes from live counter (replaced below)
   { type: "number", value: 3000,  suffix: "+", label: "учеников на курсах УПДН" },
   { type: "number", value: 30000, suffix: "+", label: "человек прошли наши материалы" },
   { type: "text",   text: "Сеченова",           label: "методика совместно с Первым МГМУ им. И.М. Сеченова" },
@@ -21,7 +22,7 @@ function easeOutCubic(t: number): number {
 }
 
 function formatNumber(n: number): string {
-  return n.toLocaleString("ru-RU").replace(/,/g, " ");
+  return n.toLocaleString("ru-RU").replace(/,/g, " ");
 }
 
 function CountUpNumber({ value, suffix, started }: { value: number; suffix: string; started: boolean }) {
@@ -33,7 +34,6 @@ function CountUpNumber({ value, suffix, started }: { value: number; suffix: stri
     if (!started) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      // Async to avoid synchronous setState in effect body
       const id = window.setTimeout(() => {
         setCurrent(value);
         setDone(true);
@@ -87,12 +87,15 @@ function TextFade({ text, started }: { text: string; started: boolean }) {
 
 export function StatsStrip() {
   const rootRef               = useRef<HTMLDivElement>(null);
-  const [started, setStarted] = useState(false);
+  const [inView, setInView]   = useState(false);
+  const liveCount             = useCounter();
+
+  // Animation starts only when BOTH: element is visible AND live count is loaded
+  const started = inView && liveCount !== null;
 
   useEffect(() => {
-    // Already animated in this session — activate immediately (async)
     if (sessionStorage.getItem(SESSION_KEY)) {
-      const id = window.setTimeout(() => setStarted(true), 0);
+      const id = window.setTimeout(() => setInView(true), 0);
       return () => window.clearTimeout(id);
     }
 
@@ -100,7 +103,7 @@ export function StatsStrip() {
       (entries) => {
         const entry = entries[0];
         if (entry?.isIntersecting) {
-          setStarted(true);
+          setInView(true);
           sessionStorage.setItem(SESSION_KEY, "1");
           observer.disconnect();
         }
@@ -112,10 +115,22 @@ export function StatsStrip() {
     return () => observer.disconnect();
   }, []);
 
+  // First cell uses live count, fallback to 327
+  const scanCount = liveCount ?? 327;
+
   return (
     <section className="py-10 px-4 bg-emerald-50/60" ref={rootRef}>
       <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        {CELLS.map((cell) => (
+        {/* Live counter cell */}
+        <div>
+          <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 leading-none">
+            <CountUpNumber value={scanCount} suffix="+" started={started} />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground leading-snug">успешных сканирований</p>
+        </div>
+
+        {/* Static cells */}
+        {STATIC_CELLS.map((cell) => (
           <div key={cell.label}>
             <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 leading-none">
               {cell.type === "number" ? (
