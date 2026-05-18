@@ -36,6 +36,10 @@ export function Hero({ scenario, title, subtitle, ctaText, disclaimer }: HeroPro
           🟢 327 человек успешно прошли сканирование
         </p>
 
+        <p className="mt-2 text-xs text-muted-foreground text-center">
+          На основе методологии врачей УПДН · Совместно с Первым МГМУ им. И.М. Сеченова · 30 000+ человек прошли наши бесплатные материалы
+        </p>
+
         <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
           {dis}

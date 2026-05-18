@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/hero";
 import { PainBlock } from "@/components/landing/pain-block";
 import { StatsStrip } from "@/components/landing/stats-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Reviews } from "@/components/landing/reviews";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FaqSection } from "@/components/landing/faq";
@@ -24,7 +25,7 @@ export default function MorningFacePage() {
       <Hero
         scenario={SCENARIO}
         title="Лицо опухает по утрам?"
-        subtitle="Узнайте причину — не косметологическую, а настоящую. Бесплатный AI-разбор по методологии УПДН."
+        subtitle="Вы уже пробовали патчи, массаж и бессолевую диету — но каждое утро одно и то же. Мы покажем настоящую причину за 60 секунд. Бесплатно."
         ctaText="→ Узнать причину своего отёка"
       />
 
@@ -32,13 +33,19 @@ export default function MorningFacePage() {
 
       <PainBlock>
         <p>
-          Вы просыпаетесь — и первое, что делаете: идёте к зеркалу и видите <strong>не своё лицо</strong>. Опухшее, тяжёлое. Щёки, веки, овал — всё будто набрало воды за ночь.
+          Утро. Будильник. Идёте к зеркалу — и видите <strong>не своё лицо</strong>. Опухшее, тяжёлое. Щёки, веки, овал — как будто набрали литр воды за ночь.
         </p>
         <p>
-          К обеду проходит. Вы списываете на что угодно: вчера немного солили, выпила стакан лишний, просто возраст. А завтра утром — снова то же самое.
+          К обеду чуть отпускает. Списываете на соль, воду, возраст — и живёте дальше. А завтра утром одно и то же.
         </p>
         <p>
-          <strong>Это не просто косметика.</strong> Системный утренний отёк — это сигнал организма. Лимфатическая система, гормоны, микронутриенты — всё взаимосвязано. Угадать без анализа нельзя.
+          Уже пробовали: патчи, ледяные ложки, лимфодренажный массаж, БАДы, бессолевую диету. Работает неделю-две — потом откат. Анализы в норме. Врач говорит: «от стресса».
+        </p>
+        <p>
+          <strong>Почему ничего не работает надолго?</strong> Потому что каждый раз берёте один элемент и ждёте результата. Массаж — без питания. Диету — без лимфы. БАДы — без понимания, что именно не так. А отёчность — это система: лимфа, питание, гормональный фон, движение. Пока не увидите свою картину целиком — отёки будут возвращаться.
+        </p>
+        <p>
+          <strong>Именно это делает сканирование — показывает вашу картину.</strong>
         </p>
       </PainBlock>
 
@@ -46,12 +53,14 @@ export default function MorningFacePage() {
       <Separator />
       <HowItWorks />
       <Separator />
+      <Reviews />
+      <Separator />
       <TrustBlock />
       <Separator />
 
       <FinalCta
         scenario={SCENARIO}
-        ctaText="→ Узнать причину своего утреннего отёка"
+        ctaText="→ Узнать причину своего отёка — бесплатно"
       />
 
       <Separator />
