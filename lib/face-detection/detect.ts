@@ -48,5 +48,15 @@ export async function detectLandmarks(
   });
 
   if (!faces.length || !faces[0]?.keypoints) return null;
-  return faces[0].keypoints;
+
+  // Keypoints are in canvas coordinates (≤640px). Scale back to natural image
+  // space so FaceZoneCanvas can correctly map them to display pixels.
+  const scaleBackX = img.naturalWidth / canvas.width;
+  const scaleBackY = img.naturalHeight / canvas.height;
+
+  return faces[0].keypoints.map((kp) => ({
+    ...kp,
+    x: kp.x * scaleBackX,
+    y: kp.y * scaleBackY,
+  }));
 }

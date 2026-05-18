@@ -5,7 +5,7 @@ import type { Keypoint } from "@tensorflow-models/face-landmarks-detection";
 
 export type LandmarkStatus = "idle" | "loading" | "done" | "error" | "no-face";
 
-const CACHE_KEY = "edm_landmarks";
+const CACHE_KEY = "edm_landmarks_v2"; // v2: coordinates in natural image space
 
 export function useFaceLandmarks(imageUrl: string | null): {
   keypoints: Keypoint[] | null;
