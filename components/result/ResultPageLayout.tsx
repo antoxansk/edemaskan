@@ -1,9 +1,16 @@
 "use client";
 
+import { useState, useCallback } from "react";
+import Link from "next/link";
 import { PRICING } from "@/lib/pricing";
 import type { AiResultType } from "@/lib/validation";
+import { useFaceLandmarks } from "@/hooks/useFaceLandmarks";
+import type { ZoneKey } from "@/lib/face-detection/zones";
 import { ResultHero } from "./ResultHero";
 import { FacePhotoWithZones } from "./FacePhotoWithZones";
+import { FaceZoneCanvas } from "./FaceZoneCanvas";
+import { ZoneTagBar } from "./ZoneTagBar";
+import { ZoneDescriptionCard } from "./ZoneDescriptionCard";
 import { ZoneChipGrid } from "./ZoneChipGrid";
 import { PrimaryCauseCard } from "./PrimaryCauseCard";
 import { SecondaryCauseCard } from "./SecondaryCauseCard";
@@ -24,6 +31,12 @@ type Props = {
 
 export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
   const displayName = name ?? result.user_name ?? "Марина";
+  const [activeZone, setActiveZone] = useState<ZoneKey | null>(null);
+  const { keypoints, status } = useFaceLandmarks(frontalPhotoUrl ?? null);
+
+  const handleZoneClick = useCallback((zone: ZoneKey) => {
+    setActiveZone((prev) => (prev === zone ? null : zone));
+  }, []);
   const recommendedKey = result.recommended_program?.key ?? "base";
   const primaryPricing = PRICING[recommendedKey];
   const alternativeKey: "base" | "advanced" = recommendedKey === "base" ? "advanced" : "base";
@@ -66,10 +79,71 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
 
         {result.zone_analysis && (
           <>
-            <FacePhotoWithZones
-              zones={result.zone_analysis}
-              frontalPhotoUrl={frontalPhotoUrl}
-            />
+            {/* Landmark-based overlay (AI detected) */}
+            {status === "loading" && (
+              <div
+                className="rounded-3xl border border-border bg-bg-elevated flex items-center justify-center"
+                style={{ aspectRatio: "3/4" }}
+              >
+                <div className="flex flex-col items-center gap-3 text-text-muted">
+                  <svg className="animate-spin w-8 h-8" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  <span className="text-sm">AI анализирует контуры лица…</span>
+                </div>
+              </div>
+            )}
+
+            {status === "done" && frontalPhotoUrl && keypoints && (
+              <div className="flex flex-col gap-3">
+                <FaceZoneCanvas
+                  imageUrl={frontalPhotoUrl}
+                  keypoints={keypoints}
+                  activeZone={activeZone}
+                  zones={result.zone_analysis}
+                  onZoneClick={handleZoneClick}
+                />
+                <ZoneTagBar
+                  zones={result.zone_analysis}
+                  activeZone={activeZone}
+                  onZoneClick={handleZoneClick}
+                />
+                {activeZone && result.zone_analysis[activeZone] && (
+                  <ZoneDescriptionCard
+                    zone={activeZone}
+                    data={result.zone_analysis[activeZone]}
+                  />
+                )}
+                <p className="text-sm text-text-muted text-center">
+                  Нажмите на тег или зону, чтобы прочитать разбор
+                </p>
+              </div>
+            )}
+
+            {(status === "no-face" || status === "error" || (status === "done" && !keypoints)) && (
+              <>
+                {(status === "no-face") && (
+                  <div className="rounded-2xl border border-border p-4 bg-bg-card text-center">
+                    <p className="text-sm text-foreground mb-3">
+                      Не удалось точно определить контуры лица.<br />
+                      Попробуйте загрузить фото при дневном свете, без очков.
+                    </p>
+                    <Link
+                      href="/scan/photos"
+                      className="inline-flex h-10 px-6 rounded-full bg-primary text-text-inverse text-sm font-semibold items-center justify-center"
+                    >
+                      Сделать фото заново
+                    </Link>
+                  </div>
+                )}
+                <FacePhotoWithZones
+                  zones={result.zone_analysis}
+                  frontalPhotoUrl={frontalPhotoUrl}
+                />
+              </>
+            )}
+
             <ZoneChipGrid zones={result.zone_analysis} />
           </>
         )}
