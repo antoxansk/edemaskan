@@ -8,6 +8,7 @@ import { Loader2, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FactsCarousel } from "@/components/scan/facts-carousel";
+import { SocialProofToast } from "@/components/landing/social-proof-toast";
 import { isValidScenario } from "@/lib/scenarios";
 
 function readUtm() {
@@ -160,8 +161,11 @@ function ScanPageContent() {
 
 export default function ScanPage() {
   return (
-    <Suspense>
-      <ScanPageContent />
-    </Suspense>
+    <>
+      <Suspense>
+        <ScanPageContent />
+      </Suspense>
+      <SocialProofToast />
+    </>
   );
 }
