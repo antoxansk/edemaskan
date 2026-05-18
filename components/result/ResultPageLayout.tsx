@@ -79,23 +79,8 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
 
         {result.zone_analysis && (
           <>
-            {/* Landmark-based overlay (AI detected) */}
-            {status === "loading" && (
-              <div
-                className="rounded-3xl border border-border bg-bg-elevated flex items-center justify-center"
-                style={{ aspectRatio: "3/4" }}
-              >
-                <div className="flex flex-col items-center gap-3 text-text-muted">
-                  <svg className="animate-spin w-8 h-8" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
-                  <span className="text-sm">AI анализирует контуры лица…</span>
-                </div>
-              </div>
-            )}
-
-            {status === "done" && frontalPhotoUrl && keypoints && (
+            {/* Landmark detection done — show AI polygon overlay */}
+            {status === "done" && frontalPhotoUrl && keypoints ? (
               <div className="flex flex-col gap-3">
                 <FaceZoneCanvas
                   imageUrl={frontalPhotoUrl}
@@ -119,11 +104,27 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
                   Нажмите на тег или зону, чтобы прочитать разбор
                 </p>
               </div>
-            )}
-
-            {(status === "no-face" || status === "error" || (status === "done" && !keypoints)) && (
-              <>
-                {(status === "no-face") && (
+            ) : (
+              /* idle / loading / error / no-face — show photo immediately */
+              <div className="flex flex-col gap-3">
+                <div className="relative">
+                  <FacePhotoWithZones
+                    zones={result.zone_analysis}
+                    frontalPhotoUrl={frontalPhotoUrl}
+                    showEllipses={status !== "no-face" && status !== "error"}
+                  />
+                  {/* Small loading badge while AI model is loading */}
+                  {(status === "idle" || status === "loading") && (
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-bg-card/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-border text-xs text-text-muted whitespace-nowrap">
+                      <svg className="animate-spin w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      AI определяет контуры…
+                    </div>
+                  )}
+                </div>
+                {status === "no-face" && (
                   <div className="rounded-2xl border border-border p-4 bg-bg-card text-center">
                     <p className="text-sm text-foreground mb-3">
                       Не удалось точно определить контуры лица.<br />
@@ -137,11 +138,7 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
                     </Link>
                   </div>
                 )}
-                <FacePhotoWithZones
-                  zones={result.zone_analysis}
-                  frontalPhotoUrl={frontalPhotoUrl}
-                />
-              </>
+              </div>
             )}
 
             <ZoneChipGrid zones={result.zone_analysis} />
