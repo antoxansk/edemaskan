@@ -1,24 +1,23 @@
 import { CheckCircle2 } from "lucide-react";
 
 const TRUST_ITEMS = [
-  "Совместно с Первым МГМУ им. И.М. Сеченова",
-  "Более 500 000 учеников на платформе",
-  "Методика подтверждена научными исследованиями",
-  "Европейская аккредитация",
+  "327+ реальных сканирований — каждое новое делает модель точнее",
+  "3 000+ учениц УПДН — фото «до/после» и протоколы, сработавшие в практике",
+  "Экспертиза врачей и нутрициологов УПДН, включая Первый МГМУ им. И.М. Сеченова",
 ] as const;
 
 export function TrustBlock() {
   return (
     <section className="py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-xl font-semibold mb-6 text-center">
-          Сервис создан специалистами УПДН
+        <h2 className="text-2xl md:text-3xl font-bold uppercase tracking-wide text-center mb-8">
+          Почему этому анализу можно доверять
         </h2>
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {TRUST_ITEMS.map((item) => (
             <li key={item} className="flex items-start gap-3">
-              <CheckCircle2 className="shrink-0 mt-0.5 text-success" size={18} />
-              <span className="text-sm">{item}</span>
+              <CheckCircle2 className="shrink-0 mt-0.5 text-emerald-600" size={20} />
+              <span className="text-sm leading-relaxed">{item}</span>
             </li>
           ))}
         </ul>

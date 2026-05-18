@@ -37,7 +37,7 @@ export function HowItWorks() {
           {STEPS.map(({ num, icon: Icon, title, desc }) => (
             <Card key={num} className="rounded-2xl shadow-sm">
               <CardContent className="flex gap-4 p-5">
-                <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
+                <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 ring-2 ring-emerald-200">
                   <Icon size={20} />
                 </div>
                 <div>

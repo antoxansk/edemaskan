@@ -25,15 +25,19 @@ export function Hero({ scenario, title, subtitle, ctaText, disclaimer }: HeroPro
         <Button
           asChild
           size="lg"
-          className="w-full sm:w-auto text-base px-8 py-4 h-auto"
+          className="btn-emerald-cta w-full sm:w-auto text-base px-8 py-4 h-auto"
           data-event="cta_click"
           data-scenario={scenario}
         >
           <Link href={ctaUrl}>{ctaText}</Link>
         </Button>
 
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck size={14} className="text-success shrink-0" />
+        <p className="mt-3 text-sm font-medium text-emerald-700">
+          🟢 327 человек успешно прошли сканирование
+        </p>
+
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
           {dis}
         </p>
       </div>

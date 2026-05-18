@@ -13,7 +13,7 @@ export function FinalCta({ scenario, ctaText }: FinalCtaProps) {
         <Button
           asChild
           size="lg"
-          className="w-full sm:w-auto text-base px-8 py-4 h-auto mb-4"
+          className="btn-emerald-cta w-full sm:w-auto text-base px-8 py-4 h-auto mb-4"
           data-event="cta_click"
           data-scenario={scenario}
         >

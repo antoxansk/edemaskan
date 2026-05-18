@@ -109,6 +109,27 @@ body {
   animation: slideUp 300ms ease-out;
 }
 
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Emerald CTA — зелёная shimmer-кнопка для лендинга */
+.btn-emerald-cta {
+  background: linear-gradient(90deg, #059669 0%, #10B981 40%, #34D399 50%, #10B981 60%, #059669 100%);
+  background-size: 200% auto;
+  animation: shimmer 4s linear infinite;
+  color: #ffffff !important;
+  border-radius: 9999px;
+  border: none;
+  box-shadow: 0 4px 16px rgb(5 150 105 / 0.30);
+}
+
+.btn-emerald-cta:hover {
+  box-shadow: 0 6px 20px rgb(5 150 105 / 0.40);
+  opacity: 0.95;
+}
+
 /* ====== REDUCED MOTION ====== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
