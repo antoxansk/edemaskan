@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/landing/hero";
 import { PainBlock } from "@/components/landing/pain-block";
+import { StatsStrip } from "@/components/landing/stats-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
@@ -39,6 +40,7 @@ export default function MorningFacePage() {
         </p>
       </PainBlock>
 
+      <StatsStrip />
       <Separator />
       <HowItWorks />
       <Separator />
