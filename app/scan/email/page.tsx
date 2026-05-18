@@ -107,7 +107,7 @@ export default function EmailPage() {
           {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+        <Button type="submit" size="lg" className="w-full h-14 text-lg font-bold btn-emerald-cta" disabled={isSubmitting}>
           {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
           Получить разбор
         </Button>

@@ -123,7 +123,7 @@ export default function QuestionnairePage() {
       </div>
 
       <div className="sticky bottom-4">
-        <Button size="lg" className="w-full shadow-lg" disabled={!allDone} onClick={proceed}>
+        <Button size="lg" className="w-full h-14 text-lg font-bold btn-emerald-cta" disabled={!allDone} onClick={proceed}>
           Получить разбор
         </Button>
       </div>

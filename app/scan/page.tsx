@@ -142,7 +142,7 @@ function ScanPageContent() {
 
       <Button
         size="lg"
-        className="w-full h-14 text-lg"
+        className="w-full h-16 text-lg font-bold btn-emerald-cta"
         disabled={!canStart || loading}
         aria-describedby={!canStart ? "consent-hint" : undefined}
         onClick={handleStart}

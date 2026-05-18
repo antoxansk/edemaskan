@@ -176,7 +176,7 @@ export default function PhotosPage() {
 
       <Button
         size="lg"
-        className="w-full"
+        className="w-full h-14 text-lg font-bold btn-emerald-cta"
         disabled={!allDone}
         onClick={() => router.push("/scan/questionnaire")}
       >

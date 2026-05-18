@@ -25,11 +25,11 @@ export function ProgramCard({ program, variant }: Props) {
   return (
     <div
       className={`relative rounded-3xl p-6 bg-bg-card shadow-card ${
-        isPrimary ? "border-2 border-primary" : "border border-border"
+        isPrimary ? "border-2 border-emerald-500" : "border border-border"
       }`}
     >
       {isPrimary && (
-        <div className="absolute -top-3 left-6 bg-primary text-text-inverse rounded-full text-xs px-3 py-1 font-medium whitespace-nowrap">
+        <div className="absolute -top-3 left-6 bg-emerald-600 text-white rounded-full text-xs px-3 py-1 font-medium whitespace-nowrap">
           Рекомендуем вам
         </div>
       )}
@@ -64,10 +64,10 @@ export function ProgramCard({ program, variant }: Props) {
         rel="noopener noreferrer"
         data-event="cta_to_upsell"
         data-variant={variant}
-        className={`flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer ${
+        className={`flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer active:scale-[0.98] ${
           isPrimary
-            ? "bg-accent text-text-inverse hover:opacity-90 active:scale-[0.98] shadow-cta"
-            : "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-text-inverse active:scale-[0.98]"
+            ? "btn-emerald-cta"
+            : "border-2 border-emerald-600 text-emerald-700 bg-transparent hover:bg-emerald-50"
         }`}
       >
         {isPrimary ? "Выбрать программу →" : "Подробнее →"}

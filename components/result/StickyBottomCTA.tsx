@@ -54,7 +54,7 @@ export function StickyBottomCTA({ url, discountPercent, priceFormatted, sentinel
         rel="noopener noreferrer"
         data-event="cta_sticky"
         onClick={scrollToPrograms}
-        className="flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold text-text-inverse cursor-pointer transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 bg-accent shadow-cta hover:opacity-90"
+        className="flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 btn-emerald-cta"
       >
         Применить скидку {discountPercent}% — {priceFormatted}
       </Link>
