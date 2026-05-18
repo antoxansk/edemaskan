@@ -15,7 +15,7 @@ export function Hero({ scenario, title, subtitle, ctaText, disclaimer }: HeroPro
   const dis = disclaimer ?? "Это не медицинская диагностика. Анализируем зоны и рекомендуем образовательную программу.";
 
   return (
-    <section className="py-16 px-4 text-center">
+    <section className="py-16 px-4 text-center" data-hero-section>
       <div className="max-w-3xl mx-auto">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-4">
           {title}

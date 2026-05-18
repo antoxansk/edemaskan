@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FaqSection } from "@/components/landing/faq";
+import { StickyBottomCTA } from "@/components/landing/sticky-bottom-cta";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
@@ -54,6 +55,8 @@ export default function MorningFacePage() {
 
       <Separator />
       <FaqSection />
+
+      <StickyBottomCTA scenario={SCENARIO} />
     </>
   );
 }

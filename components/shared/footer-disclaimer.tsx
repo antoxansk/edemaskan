@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function FooterDisclaimer() {
   return (
-    <footer className="mt-auto border-t border-border py-6 px-4 text-center text-xs text-muted-foreground">
+    <footer className="mt-auto border-t border-border py-6 px-4 text-center text-xs text-muted-foreground" data-landing-footer>
       <p className="max-w-2xl mx-auto mb-2">
         Edemaskan — образовательный сервис УПДН (Университет персонализированной диетологии и нутрициологии).
         Не является медицинским. Не ставит диагнозов. Не заменяет консультацию врача.
