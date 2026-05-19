@@ -48,13 +48,17 @@ export default function ResultPage() {
       return;
     }
 
+    // Restore name entered on email screen
+    const storedName = sessionStorage.getItem("edm_user_name");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (storedName) setName(storedName);
+
     // aiResult is already in state via useState(aiResult) initial value
     if (aiResult) return;
 
     const stored = sessionStorage.getItem("edm_ai_result");
     if (stored) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setResult(JSON.parse(stored) as AiResultType);
         setLoading(false);
         return;

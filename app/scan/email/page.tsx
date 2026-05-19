@@ -78,6 +78,7 @@ export default function EmailPage() {
     if (data.special_price_expires_at) {
       sessionStorage.setItem("edm_expires_at", data.special_price_expires_at);
     }
+    sessionStorage.setItem("edm_user_name", values.name);
 
     router.push("/scan/result");
   }
