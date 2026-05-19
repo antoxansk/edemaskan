@@ -183,7 +183,7 @@ export default function PhotosPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold mb-1">Сделайте 4 фото лица</h1>
-        <p className="text-sm text-muted-foreground">При хорошем освещении, без теней, фильтров и очков</p>
+        <p className="text-sm text-muted-foreground">При дневном освещении</p>
       </div>
 
       <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700 border border-emerald-100">
