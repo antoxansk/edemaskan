@@ -15,53 +15,57 @@ export async function checkRateLimit(
   maxRequests: number,
   windowMs: number,
 ): Promise<RateLimitResult> {
-  const windowStart = new Date(Date.now() - windowMs).toISOString();
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - windowMs).toISOString();
+  const nowIso = now.toISOString();
 
-  const { data, error } = await supabaseAdmin
+  // Ensure row exists — insert with count=0 if new, do nothing if exists
+  await supabaseAdmin
     .from("rate_limit_buckets")
     .upsert(
       {
         bucket_key:    key,
-        request_count: 1,
-        window_start:  new Date().toISOString(),
-        updated_at:    new Date().toISOString(),
+        request_count: 0,
+        window_start:  nowIso,
+        updated_at:    nowIso,
       },
-      {
-        onConflict:        "bucket_key",
-        ignoreDuplicates:  false,
-      },
-    )
+      { onConflict: "bucket_key", ignoreDuplicates: true },
+    );
+
+  // Read current state
+  const { data, error } = await supabaseAdmin
+    .from("rate_limit_buckets")
     .select("request_count, window_start")
+    .eq("bucket_key", key)
     .single();
 
   if (error || !data) {
-    // On DB error, allow the request (fail open)
+    // On DB error, fail open so legitimate users aren't blocked
     return { allowed: true, remaining: maxRequests };
   }
 
-  // Reset window if expired
+  // Reset window if it has expired
   if (data.window_start < windowStart) {
     await supabaseAdmin
       .from("rate_limit_buckets")
-      .update({ request_count: 1, window_start: new Date().toISOString() })
+      .update({ request_count: 1, window_start: nowIso, updated_at: nowIso })
       .eq("bucket_key", key);
-
     return { allowed: true, remaining: maxRequests - 1 };
   }
 
   const count = data.request_count as number;
 
-  if (count > maxRequests) {
+  if (count >= maxRequests) {
     return { allowed: false, remaining: 0 };
   }
 
-  // Increment
+  // Increment counter
   await supabaseAdmin
     .from("rate_limit_buckets")
-    .update({ request_count: count + 1 })
+    .update({ request_count: count + 1, updated_at: nowIso })
     .eq("bucket_key", key);
 
-  return { allowed: true, remaining: maxRequests - count };
+  return { allowed: true, remaining: maxRequests - count - 1 };
 }
 
 // Preset limiters (SPEC §5.8)

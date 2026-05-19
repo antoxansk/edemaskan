@@ -65,6 +65,12 @@ export default function EmailPage() {
     };
 
     if (!res.ok || !data.success) {
+      if (data.error?.code === "SESSION_NOT_FOUND") {
+        sessionStorage.clear();
+        toast.error("Сессия устарела. Начните новый разбор.");
+        router.replace("/scan");
+        return;
+      }
       toast.error(data.error?.message ?? "Ошибка. Попробуйте ещё раз.");
       return;
     }

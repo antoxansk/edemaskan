@@ -1,7 +1,6 @@
 // Stub for @mediapipe/face_mesh — satisfies Turbopack's static analysis.
 // face-landmarks-detection's ESM bundle imports this unconditionally, but
 // the MediaPipe code path is never executed (we use runtime: "tfjs").
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 export class FaceMesh {
   setOptions(): void {}

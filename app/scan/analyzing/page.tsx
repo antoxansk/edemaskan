@@ -29,7 +29,7 @@ export default function AnalyzingPage() {
   const controllerRef = useRef<AbortController | null>(null);
   const elapsedRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function runAnalysis(_attemptNum: number) {
+  async function runAnalysis() {
     setAnalyzing(true);
     setError(null);
     setElapsed(0);
@@ -109,7 +109,7 @@ export default function AnalyzingPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void runAnalysis(1);
+    void runAnalysis();
     setAttempt(1);
     return () => {
       controllerRef.current?.abort();
@@ -121,7 +121,7 @@ export default function AnalyzingPage() {
   function retry() {
     const next = attempt + 1;
     setAttempt(next);
-    void runAnalysis(next);
+    void runAnalysis();
   }
 
   const circumference = 2 * Math.PI * 44;
@@ -153,7 +153,7 @@ export default function AnalyzingPage() {
     );
   }
 
-  const countdown = Math.max(0, 30 - elapsed);
+  const countdown = Math.max(0, 60 - elapsed);
 
   return (
     <div className="flex flex-col items-center gap-6 text-center pt-8">

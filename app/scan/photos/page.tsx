@@ -131,6 +131,42 @@ export default function PhotosPage() {
     setIsDesktop(noCamera || bigScreen);
   }, [router]);
 
+  // Preload pose illustrations so they appear instantly
+  useEffect(() => {
+    Object.values(POSE_IMAGES).forEach((src) => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
+
+  const frontalPreviewUrl = photos.find((p) => p.slot === "frontal")?.previewUrl ?? null;
+  const allPhotosCount = photos.length;
+
+  // As soon as all 4 photos are ready, fire-and-forget TF.js face detection.
+  // Result is cached in sessionStorage so the result page shows contours in 1-2s.
+  useEffect(() => {
+    if (allPhotosCount < 4 || !frontalPreviewUrl) return;
+
+    const photoUrl = frontalPreviewUrl;
+    try { sessionStorage.removeItem("edm_landmarks_v2"); } catch { /* ignore */ }
+
+    void (async () => {
+      try {
+        const { loadDetector, detectLandmarks } = await import("@/lib/face-detection/detect");
+        await loadDetector();
+        const img = new window.Image();
+        img.src = photoUrl;
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+        const kps = await detectLandmarks(img);
+        if (kps) sessionStorage.setItem("edm_landmarks_v2", JSON.stringify(kps));
+      } catch { /* silent fail — result page will detect on its own */ }
+    })();
+    // No cleanup — intentionally continues across navigation to questionnaire
+  }, [allPhotosCount, frontalPreviewUrl]);
+
   const photoMap = Object.fromEntries(photos.map((p) => [p.slot, p]));
   const allDone  = SLOTS.every(({ slot }) => slot in photoMap);
 

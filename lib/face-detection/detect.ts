@@ -19,7 +19,7 @@ export async function loadDetector(): Promise<FaceLandmarksDetector> {
         faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
         {
           runtime: "tfjs",
-          refineLandmarks: true,
+          refineLandmarks: false,
           maxFaces: 1,
         }
       );
