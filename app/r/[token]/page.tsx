@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FooterDisclaimer } from "@/components/shared/footer-disclaimer";
 import { ResultView } from "@/components/scan/result-view";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 import type { AiResultType } from "@/lib/validation";
 
 type Props = { params: Promise<{ token: string }> };
@@ -14,12 +14,17 @@ export default async function ResultByTokenPage({ params }: Props) {
     notFound();
   }
 
-  const { data } = await supabaseAdmin
-    .from("scan_sessions")
-    .select("ai_result, name, special_price_expires_at, red_flag")
-    .eq("result_token", token)
-    .not("ai_result", "is", null)
-    .single();
+  const data = await queryOne<{
+    ai_result:                AiResultType;
+    name:                     string | null;
+    special_price_expires_at: string | null;
+    red_flag:                 boolean;
+  }>(
+    `SELECT ai_result, name, special_price_expires_at, red_flag
+     FROM scan_sessions
+     WHERE result_token=$1 AND ai_result IS NOT NULL`,
+    [token],
+  );
 
   if (!data) notFound();
 
@@ -33,9 +38,9 @@ export default async function ResultByTokenPage({ params }: Props) {
 
       <main className="flex-1 w-full">
         <ResultView
-          name={data.name as string | null}
-          result={data.ai_result as AiResultType}
-          expiresAt={data.special_price_expires_at as string | null}
+          name={data.name}
+          result={data.ai_result}
+          expiresAt={data.special_price_expires_at}
         />
       </main>
 

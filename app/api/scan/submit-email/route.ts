@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { queryOne, execute } from "@/lib/db";
 import { SubmitEmailRequest } from "@/lib/validation";
 import { buildGetcoursePayload } from "@/lib/getcourse";
 import { sendLeadAlert } from "@/lib/telegram";
@@ -26,16 +26,29 @@ export async function POST(req: NextRequest) {
 
   const { session_token, result_token, name, email } = parsed.data;
 
-  // Lookup session: must have AI result
-  const { data: session } = await supabaseAdmin
-    .from("scan_sessions")
-    .select(
-      "id, entry_scenario, primary_cause_key, red_flag, result_token, email_submitted_at, special_price_expires_at, utm_source, utm_medium, utm_campaign, utm_content, ai_result",
-    )
-    .eq("session_token", session_token)
-    .eq("result_token", result_token)
-    .not("ai_result", "is", null)
-    .single();
+  type SessionRow = {
+    id: string;
+    entry_scenario: string;
+    primary_cause_key: string | null;
+    red_flag: boolean;
+    result_token: string;
+    email_submitted_at: string | null;
+    special_price_expires_at: string | null;
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    utm_content: string | null;
+    ai_result: Record<string, unknown> | null;
+  };
+
+  const session = await queryOne<SessionRow>(
+    `SELECT id, entry_scenario, primary_cause_key, red_flag, result_token,
+            email_submitted_at, special_price_expires_at,
+            utm_source, utm_medium, utm_campaign, utm_content, ai_result
+     FROM scan_sessions
+     WHERE session_token=$1 AND result_token=$2 AND ai_result IS NOT NULL`,
+    [session_token, result_token],
+  );
 
   if (!session) {
     return NextResponse.json(
@@ -44,7 +57,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Idempotency: if already submitted, return existing data
   if (session.email_submitted_at) {
     return NextResponse.json({
       success:                  true,
@@ -55,20 +67,14 @@ export async function POST(req: NextRequest) {
 
   const specialPriceExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
 
-  // Update session with name/email
-  await supabaseAdmin
-    .from("scan_sessions")
-    .update({
-      name,
-      email,
-      email_submitted_at:       new Date().toISOString(),
-      special_price_expires_at: specialPriceExpiresAt,
-      funnel_stage:             "email_submitted",
-      getcourse_status:         "pending",
-    })
-    .eq("id", session.id);
+  await execute(
+    `UPDATE scan_sessions SET
+       name=$1, email=$2, email_submitted_at=$3,
+       special_price_expires_at=$4, funnel_stage='email_submitted', getcourse_status='pending'
+     WHERE id=$5`,
+    [name, email, new Date().toISOString(), specialPriceExpiresAt, session.id],
+  );
 
-  // Extract secondary_cause and recommended_program from ai_result
   type AiResultShape = {
     secondary_cause?: { key?: string } | null;
     recommended_program?: { key?: string } | null;
@@ -77,39 +83,35 @@ export async function POST(req: NextRequest) {
   const secondaryCauseKey = aiResult?.secondary_cause?.key ?? null;
   const recommendedProgramKey = aiResult?.recommended_program?.key ?? null;
 
-  // Build GetCourse payload
   const gcPayload = buildGetcoursePayload({
     email,
     name,
-    entry_scenario:           session.entry_scenario as string,
-    primary_cause_key:        session.primary_cause_key as string | null,
-    secondary_cause_key:      secondaryCauseKey ?? null,
-    recommended_program_key:  recommendedProgramKey ?? null,
-    red_flag:                 session.red_flag as boolean,
-    result_token:             result_token,
+    entry_scenario:           session.entry_scenario,
+    primary_cause_key:        session.primary_cause_key,
+    secondary_cause_key:      secondaryCauseKey,
+    recommended_program_key:  recommendedProgramKey,
+    red_flag:                 session.red_flag,
+    result_token,
     special_price_expires_at: specialPriceExpiresAt,
-    utm_source:               session.utm_source as string | null,
-    utm_medium:               session.utm_medium as string | null,
-    utm_campaign:             session.utm_campaign as string | null,
-    utm_content:              session.utm_content as string | null,
+    utm_source:               session.utm_source,
+    utm_medium:               session.utm_medium,
+    utm_campaign:             session.utm_campaign,
+    utm_content:              session.utm_content,
   });
 
-  // Enqueue for GetCourse sync
-  await supabaseAdmin.from("getcourse_sync_queue").insert({
-    session_id:    session.id,
-    payload:       gcPayload,
-    status:        "pending",
-    next_retry_at: new Date().toISOString(),
-  });
+  await execute(
+    `INSERT INTO getcourse_sync_queue (session_id, payload, status, next_retry_at)
+     VALUES ($1, $2, 'pending', $3)`,
+    [session.id, gcPayload, new Date().toISOString()],
+  );
 
-  // Fire-and-forget Telegram lead alert
   void sendLeadAlert({
     name,
     email,
-    scenario:     session.entry_scenario as string,
-    primaryCause: session.primary_cause_key as string | null,
-    redFlag:      session.red_flag as boolean,
-    sessionId:    session.id as string,
+    scenario:     session.entry_scenario,
+    primaryCause: session.primary_cause_key,
+    redFlag:      session.red_flag,
+    sessionId:    session.id,
   });
 
   return NextResponse.json({

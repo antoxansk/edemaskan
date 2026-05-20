@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { query, execute } from "@/lib/db";
 import { sendToGetcourse, type GetcoursePayload } from "@/lib/getcourse";
 import { sendErrorAlert } from "@/lib/telegram";
 import { env } from "@/lib/env";
+
+type QueueRow = {
+  id: string;
+  session_id: string;
+  payload: GetcoursePayload;
+  attempts: number;
+  max_attempts: number;
+};
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -15,73 +23,62 @@ export async function GET(req: NextRequest) {
 
   const now = new Date().toISOString();
 
-  const { data: rows } = await supabaseAdmin
-    .from("getcourse_sync_queue")
-    .select("*")
-    .in("status", ["pending", "failed_temporary"])
-    .lte("next_retry_at", now)
-    .order("next_retry_at", { ascending: true })
-    .limit(20);
+  const rows = await query<QueueRow>(
+    `SELECT id, session_id, payload, attempts, max_attempts
+     FROM getcourse_sync_queue
+     WHERE status IN ('pending','failed_temporary') AND next_retry_at <= $1
+     ORDER BY next_retry_at ASC
+     LIMIT 20`,
+    [now],
+  );
 
   const counters = { processed: 0, synced: 0, failed_temporary: 0, failed_permanent: 0 };
 
-  for (const row of rows ?? []) {
+  for (const row of rows) {
     counters.processed++;
-    const newAttempts = (row.attempts as number) + 1;
+    const newAttempts = row.attempts + 1;
 
-    await supabaseAdmin
-      .from("getcourse_sync_queue")
-      .update({
-        status:            "in_progress",
-        attempts:          newAttempts,
-        last_attempted_at: new Date().toISOString(),
-      })
-      .eq("id", row.id);
+    await execute(
+      `UPDATE getcourse_sync_queue SET status='in_progress', attempts=$1, last_attempted_at=$2 WHERE id=$3`,
+      [newAttempts, new Date().toISOString(), row.id],
+    );
 
-    const result = await sendToGetcourse(row.payload as GetcoursePayload);
+    const result = await sendToGetcourse(row.payload);
 
     if (result.ok) {
       counters.synced++;
-      await supabaseAdmin
-        .from("getcourse_sync_queue")
-        .update({
-          status:             "synced",
-          synced_at:          new Date().toISOString(),
-          getcourse_lead_id:  result.lead_id,
-        })
-        .eq("id", row.id);
-
-      await supabaseAdmin
-        .from("scan_sessions")
-        .update({
-          getcourse_status:    "synced",
-          getcourse_lead_id:   result.lead_id,
-          getcourse_synced_at: new Date().toISOString(),
-        })
-        .eq("id", row.session_id);
-
+      const syncedAt = new Date().toISOString();
+      await Promise.all([
+        execute(
+          `UPDATE getcourse_sync_queue SET status='synced', synced_at=$1, getcourse_lead_id=$2 WHERE id=$3`,
+          [syncedAt, result.lead_id, row.id],
+        ),
+        execute(
+          `UPDATE scan_sessions SET getcourse_status='synced', getcourse_lead_id=$1, getcourse_synced_at=$2 WHERE id=$3`,
+          [result.lead_id, syncedAt, row.session_id],
+        ),
+      ]);
       continue;
     }
 
-    const maxAttempts = row.max_attempts as number;
-    const exhausted = newAttempts >= maxAttempts;
+    const exhausted = newAttempts >= row.max_attempts;
     const permanent = !result.retriable || exhausted;
 
     if (permanent) {
       counters.failed_permanent++;
-      await supabaseAdmin
-        .from("getcourse_sync_queue")
-        .update({ status: "failed_permanent", last_error: result.error })
-        .eq("id", row.id);
-
-      await supabaseAdmin
-        .from("scan_sessions")
-        .update({ getcourse_status: "failed" })
-        .eq("id", row.session_id);
-
+      await Promise.all([
+        execute(
+          `UPDATE getcourse_sync_queue SET status='failed_permanent', last_error=$1 WHERE id=$2`,
+          [result.error, row.id],
+        ),
+        execute(
+          `UPDATE scan_sessions SET getcourse_status='failed' WHERE id=$1`,
+          [row.session_id],
+        ),
+      ]);
       await sendErrorAlert({
         errorType: `GetCourse failed_permanent: ${result.error}`,
-        sessionId: row.session_id as string,
+        sessionId: row.session_id,
         scenario:  "getcourse-retry",
         attempt:   newAttempts,
         critical:  true,
@@ -90,15 +87,10 @@ export async function GET(req: NextRequest) {
       counters.failed_temporary++;
       const backoffMs = Math.pow(newAttempts, 2) * 60_000;
       const nextRetryAt = new Date(Date.now() + backoffMs).toISOString();
-
-      await supabaseAdmin
-        .from("getcourse_sync_queue")
-        .update({
-          status:        "failed_temporary",
-          last_error:    result.error,
-          next_retry_at: nextRetryAt,
-        })
-        .eq("id", row.id);
+      await execute(
+        `UPDATE getcourse_sync_queue SET status='failed_temporary', last_error=$1, next_retry_at=$2 WHERE id=$3`,
+        [result.error, nextRetryAt, row.id],
+      );
     }
   }
 

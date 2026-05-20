@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 function getIp(req: NextRequest): string {
@@ -13,7 +13,6 @@ export async function GET(
 ) {
   const { token } = await params;
 
-  // Basic token format validation
   if (!/^[A-Za-z0-9\-_]{24,48}$/.test(token)) {
     return NextResponse.json(
       { error: { code: "RESULT_NOT_FOUND", message: "Результат не найден" } },
@@ -23,7 +22,6 @@ export async function GET(
 
   const ip = getIp(req);
 
-  // Rate limit: 60/hour per IP
   const rl = await checkRateLimit(
     `ip:${ip}:result_view`,
     RATE_LIMITS.result_view.maxRequests,
@@ -36,12 +34,18 @@ export async function GET(
     );
   }
 
-  const { data: session } = await supabaseAdmin
-    .from("scan_sessions")
-    .select("ai_result, name, special_price_expires_at, created_at, red_flag")
-    .eq("result_token", token)
-    .not("ai_result", "is", null)
-    .single();
+  const session = await queryOne<{
+    ai_result:                Record<string, unknown>;
+    name:                     string | null;
+    special_price_expires_at: string | null;
+    created_at:               string;
+    red_flag:                 boolean;
+  }>(
+    `SELECT ai_result, name, special_price_expires_at, created_at, red_flag
+     FROM scan_sessions
+     WHERE result_token=$1 AND ai_result IS NOT NULL`,
+    [token],
+  );
 
   if (!session) {
     return NextResponse.json(

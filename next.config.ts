@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: [
     "@tensorflow/tfjs-backend-webgl",
     "@tensorflow-models/face-landmarks-detection",

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { setTimeout as wait } from "node:timers/promises";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { queryOne, execute } from "@/lib/db";
 import { QuestionnaireSchema } from "@/lib/validation";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { callOpenRouter } from "@/lib/openrouter";
 import { sendErrorAlert } from "@/lib/telegram";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
-const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // 4 MB — client compresses, server just guards against huge uploads
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 function getIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -27,7 +27,6 @@ async function fileToBase64DataUrl(file: File): Promise<string> {
 export async function POST(req: NextRequest) {
   const ip = getIp(req);
 
-  // Rate limit per IP
   const rl = await checkRateLimit(
     `ip:${ip}:scan_analyze`,
     RATE_LIMITS.scan_analyze.maxRequests,
@@ -60,12 +59,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Lookup session
-  const { data: session } = await supabaseAdmin
-    .from("scan_sessions")
-    .select("id, entry_scenario, name")
-    .eq("session_token", session_token)
-    .single();
+  const session = await queryOne<{ id: string; entry_scenario: string; name: string | null }>(
+    `SELECT id, entry_scenario, name FROM scan_sessions WHERE session_token = $1`,
+    [session_token],
+  );
 
   if (!session) {
     return NextResponse.json(
@@ -74,7 +71,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Rate limit per session (4 attempts lifetime)
   const sessionRl = await checkRateLimit(`session:${session.id}:scan_analyze`, 4, 24 * 60 * 60 * 1000);
   if (!sessionRl.allowed) {
     return NextResponse.json(
@@ -83,7 +79,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Parse questionnaire answers
   let answersObj: unknown;
   try {
     answersObj = JSON.parse(answersRaw);
@@ -102,7 +97,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Extract and validate photos
   const photoKeys = ["photo_frontal", "photo_three_quarter_left", "photo_three_quarter_right", "photo_tilted_down"] as const;
   const photoFiles: File[] = [];
 
@@ -129,26 +123,19 @@ export async function POST(req: NextRequest) {
     photoFiles.push(f);
   }
 
-  // Update session with questionnaire
-  await supabaseAdmin
-    .from("scan_sessions")
-    .update({
-      questionnaire:      parsedAnswers.data,
-      funnel_stage:       "questionnaire_done",
-      ai_call_started_at: new Date().toISOString(),
-    })
-    .eq("id", session.id);
+  await execute(
+    `UPDATE scan_sessions SET questionnaire=$1, funnel_stage='questionnaire_done', ai_call_started_at=$2 WHERE id=$3`,
+    [parsedAnswers.data, new Date().toISOString(), session.id],
+  );
 
-  // Convert photos to base64 data URLs
   const photoDataUrls = await Promise.all(photoFiles.map(fileToBase64DataUrl));
 
-  // Call OpenRouter (with one retry on retriable errors)
-  const userName = (session.name as string | null) ?? "Марина";
+  const userName = session.name ?? "Марина";
   const answersRecord = parsedAnswers.data as Record<string, string>;
 
   let attempt = 1;
   let aiResult = await callOpenRouter({
-    scenario:      session.entry_scenario as string,
+    scenario:      session.entry_scenario,
     userName,
     answers:       answersRecord,
     photoDataUrls,
@@ -158,7 +145,7 @@ export async function POST(req: NextRequest) {
     await wait(2000);
     attempt = 2;
     aiResult = await callOpenRouter({
-      scenario:      session.entry_scenario as string,
+      scenario:      session.entry_scenario,
       userName,
       answers:       answersRecord,
       photoDataUrls,
@@ -172,36 +159,31 @@ export async function POST(req: NextRequest) {
   console.log("[scan/analyze] photos_purged: true, session:", session.id);
 
   if (!aiResult.ok) {
-    // Log error
-    await supabaseAdmin.from("ai_errors").insert({
-      session_id:    session.id,
-      attempt,
-      error_code:    aiResult.error_code,
-      error_message: aiResult.error_message,
-      raw_response:  (aiResult.raw_response ?? "").slice(0, 4096),
-    });
+    await execute(
+      `INSERT INTO ai_errors (session_id, attempt, error_code, error_message, raw_response)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [session.id, attempt, aiResult.error_code, aiResult.error_message, (aiResult.raw_response ?? "").slice(0, 4096)],
+    );
 
     await sendErrorAlert({
-      errorType:  aiResult.error_code,
-      sessionId:  session.id,
-      scenario:   session.entry_scenario as string,
+      errorType: aiResult.error_code,
+      sessionId: session.id,
+      scenario:  session.entry_scenario,
       attempt,
-      critical:   false,
+      critical:  false,
     });
 
-    // Check if 5+ errors of this type in the last hour → critical alert
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count } = await supabaseAdmin
-      .from("ai_errors")
-      .select("id", { count: "exact", head: true })
-      .eq("error_code", aiResult.error_code)
-      .gte("created_at", oneHourAgo);
+    const countRow = await queryOne<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM ai_errors WHERE error_code=$1 AND created_at >= $2`,
+      [aiResult.error_code, oneHourAgo],
+    );
 
-    if ((count ?? 0) >= 5) {
+    if (parseInt(countRow?.count ?? "0", 10) >= 5) {
       await sendErrorAlert({
         errorType: `${aiResult.error_code} (≥5 за час)`,
         sessionId: session.id,
-        scenario:  session.entry_scenario as string,
+        scenario:  session.entry_scenario,
         critical:  true,
       });
     }
@@ -212,28 +194,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Success — generate result_token and save
-  const result_token = randomBytes(18).toString("base64url"); // 24 base64url chars
+  const result_token = randomBytes(18).toString("base64url");
   const result = aiResult.result;
   const primaryCauseKey = result.primary_cause?.key ?? null;
   const redFlag = result.red_flag;
 
-  await supabaseAdmin
-    .from("scan_sessions")
-    .update({
-      ai_result:           result,
-      ai_model:            process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4",
-      ai_call_duration_ms: aiResult.duration_ms,
-      ai_input_tokens:     aiResult.usage.prompt_tokens,
-      ai_output_tokens:    aiResult.usage.completion_tokens,
-      ai_cost_usd_microcents: Math.round(aiResult.usage.cost_usd * 100_000_000),
-      primary_cause_key:   primaryCauseKey,
-      red_flag:            redFlag,
-      red_flag_reason:     result.red_flag_reason ?? null,
+  await execute(
+    `UPDATE scan_sessions SET
+       ai_result=$1, ai_model=$2, ai_call_duration_ms=$3,
+       ai_input_tokens=$4, ai_output_tokens=$5, ai_cost_usd_microcents=$6,
+       primary_cause_key=$7, red_flag=$8, red_flag_reason=$9,
+       result_token=$10, funnel_stage=$11
+     WHERE id=$12`,
+    [
+      result,
+      process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4",
+      aiResult.duration_ms,
+      aiResult.usage.prompt_tokens,
+      aiResult.usage.completion_tokens,
+      Math.round(aiResult.usage.cost_usd * 100_000_000),
+      primaryCauseKey,
+      redFlag,
+      result.red_flag_reason ?? null,
       result_token,
-      funnel_stage:        redFlag ? "red_flagged" : "ai_analyzed",
-    })
-    .eq("id", session.id);
+      redFlag ? "red_flagged" : "ai_analyzed",
+      session.id,
+    ],
+  );
 
   return NextResponse.json({ success: true, result_token, ai_result: result });
 }

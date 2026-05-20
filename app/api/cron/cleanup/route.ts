@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase/server";
+import { execute } from "@/lib/db";
 import { env } from "@/lib/env";
 
 export async function GET(req: NextRequest) {
@@ -11,33 +11,26 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Delete incomplete sessions older than 7 days (no email = not a lead)
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { count: deletedSessions } = await supabaseAdmin
-    .from("scan_sessions")
-    .delete({ count: "exact" })
-    .is("email_submitted_at", null)
-    .lt("created_at", sevenDaysAgo);
+  const sevenDaysAgo   = new Date(Date.now() - 7  * 24 * 60 * 60 * 1000).toISOString();
+  const oneDayAgo      = new Date(Date.now() - 1  * 24 * 60 * 60 * 1000).toISOString();
+  const ninetyDaysAgo  = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Delete expired rate limit buckets older than 24h
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: deletedBuckets } = await supabaseAdmin
-    .from("rate_limit_buckets")
-    .delete({ count: "exact" })
-    .lt("window_start", oneDayAgo);
-
-  // Delete AI errors older than 90 days
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-  const { count: deletedErrors } = await supabaseAdmin
-    .from("ai_errors")
-    .delete({ count: "exact" })
-    .lt("created_at", ninetyDaysAgo);
+  const [deletedSessions, deletedBuckets, deletedErrors] = await Promise.all([
+    execute(
+      `DELETE FROM scan_sessions WHERE email_submitted_at IS NULL AND created_at < $1`,
+      [sevenDaysAgo],
+    ),
+    execute(
+      `DELETE FROM rate_limit_buckets WHERE window_start < $1`,
+      [oneDayAgo],
+    ),
+    execute(
+      `DELETE FROM ai_errors WHERE created_at < $1`,
+      [ninetyDaysAgo],
+    ),
+  ]);
 
   console.log("[cron/cleanup] done", { deletedSessions, deletedBuckets, deletedErrors });
 
-  return NextResponse.json({
-    deleted_sessions: deletedSessions ?? 0,
-    deleted_buckets:  deletedBuckets  ?? 0,
-    deleted_errors:   deletedErrors   ?? 0,
-  });
+  return NextResponse.json({ deleted_sessions: deletedSessions, deleted_buckets: deletedBuckets, deleted_errors: deletedErrors });
 }
