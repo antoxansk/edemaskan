@@ -48,6 +48,8 @@ export default function AnalyzingPage() {
 
     const controller = new AbortController();
     controllerRef.current = controller;
+    // Auto-abort after 70s so the user gets an error instead of infinite spinner
+    const autoAbortTimer = setTimeout(() => controller.abort(), 70_000);
 
     try {
       const fd = new FormData();
@@ -96,6 +98,7 @@ export default function AnalyzingPage() {
         setError("Анализ временно недоступен. Попробуйте через 1-2 минуты.");
       }
     } finally {
+      clearTimeout(autoAbortTimer);
       if (elapsedRef.current) clearInterval(elapsedRef.current);
       setAnalyzing(false);
     }
