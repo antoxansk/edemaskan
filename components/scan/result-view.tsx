@@ -6,8 +6,9 @@ type ResultViewProps = {
   result: AiResultType;
   expiresAt?: string | null;      // kept for API compatibility — OfferTimer uses localStorage instead
   frontalPhotoUrl?: string | null;
+  resultToken?: string | null;
 };
 
-export function ResultView({ name, result, frontalPhotoUrl }: ResultViewProps) {
-  return <ResultPageLayout result={result} name={name} frontalPhotoUrl={frontalPhotoUrl} />;
+export function ResultView({ name, result, frontalPhotoUrl, resultToken }: ResultViewProps) {
+  return <ResultPageLayout result={result} name={name} frontalPhotoUrl={frontalPhotoUrl} resultToken={resultToken} />;
 }

@@ -59,6 +59,15 @@ export async function sendToGetcourse(payload: GetcoursePayload): Promise<Getcou
   }
 }
 
+export function buildCtaClickPayload(email: string, name: string): GetcoursePayload {
+  return {
+    email,
+    first_name: name,
+    addfields: { edm_cta_clicked: "true" },
+    user_groups: ["edemaskan_cta_clicked"],
+  };
+}
+
 export function buildGetcoursePayload(session: {
   email:                    string;
   name:                     string;

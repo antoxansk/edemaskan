@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/landing/hero";
 import { PainBlock } from "@/components/landing/pain-block";
+import { StatsStrip } from "@/components/landing/stats-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Reviews } from "@/components/landing/reviews";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FaqSection } from "@/components/landing/faq";
+import { StickyBottomCTA } from "@/components/landing/sticky-bottom-cta";
+import { SocialProofToast } from "@/components/landing/social-proof-toast";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
@@ -41,12 +45,15 @@ export default function EyeBagsPage() {
           <li>Гормональные изменения после 40</li>
         </ul>
         <p>
-          Пока не знаете причину — косметология работает на симптом, а не на причину.
+          <strong>Пока не знаете причину — косметология работает на симптом, а не на причину.</strong>
         </p>
       </PainBlock>
 
+      <StatsStrip />
       <Separator />
       <HowItWorks />
+      <Separator />
+      <Reviews />
       <Separator />
       <TrustBlock />
       <Separator />
@@ -58,6 +65,9 @@ export default function EyeBagsPage() {
 
       <Separator />
       <FaqSection />
+
+      <StickyBottomCTA scenario={SCENARIO} />
+      <SocialProofToast />
     </>
   );
 }

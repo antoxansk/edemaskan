@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/landing/hero";
 import { PainBlock } from "@/components/landing/pain-block";
+import { StatsStrip } from "@/components/landing/stats-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Reviews } from "@/components/landing/reviews";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FaqSection } from "@/components/landing/faq";
+import { StickyBottomCTA } from "@/components/landing/sticky-bottom-cta";
+import { SocialProofToast } from "@/components/landing/social-proof-toast";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
@@ -35,12 +39,15 @@ export default function RingsPage() {
           Вместе с этим: утром опухшее лицо, к вечеру тяжелеют ноги. <strong>Это не три разные проблемы — это одна.</strong> Организм задерживает жидкость системно.
         </p>
         <p>
-          Причины разные: лимфатический застой, нарушение водно-солевого обмена, дефициты, гормональный фон. Чтобы работать с причиной, а не симптомом — нужно сначала её знать.
+          <strong>Причины разные: лимфатический застой, нарушение водно-солевого обмена, дефициты, гормональный фон. Чтобы работать с причиной, а не симптомом — нужно сначала её знать.</strong>
         </p>
       </PainBlock>
 
+      <StatsStrip />
       <Separator />
       <HowItWorks />
+      <Separator />
+      <Reviews />
       <Separator />
       <TrustBlock />
       <Separator />
@@ -52,6 +59,9 @@ export default function RingsPage() {
 
       <Separator />
       <FaqSection />
+
+      <StickyBottomCTA scenario={SCENARIO} />
+      <SocialProofToast />
     </>
   );
 }

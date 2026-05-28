@@ -41,6 +41,7 @@ export default async function ResultByTokenPage({ params }: Props) {
           name={data.name}
           result={data.ai_result}
           expiresAt={data.special_price_expires_at}
+          resultToken={token}
         />
       </main>
 

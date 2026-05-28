@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Hero } from "@/components/landing/hero";
 import { PainBlock } from "@/components/landing/pain-block";
+import { StatsStrip } from "@/components/landing/stats-strip";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { Reviews } from "@/components/landing/reviews";
 import { TrustBlock } from "@/components/landing/trust-block";
 import { FinalCta } from "@/components/landing/final-cta";
 import { FaqSection } from "@/components/landing/faq";
+import { StickyBottomCTA } from "@/components/landing/sticky-bottom-cta";
+import { SocialProofToast } from "@/components/landing/social-proof-toast";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata: Metadata = {
@@ -35,12 +39,15 @@ export default function LegsPage() {
           <strong>Это классический паттерн системного лимфостаза.</strong> Лимфа движется снизу вверх в конечностях и сверху вниз от головы — когда её ток нарушен, жидкость оседает там, где сила тяжести: к вечеру в ногах, к утру в лице.
         </p>
         <p>
-          Ноги и лицо — один и тот же процесс. Поэтому <strong>по фото лица</strong> мы можем определить вашу системную причину.
+          <strong>Ноги и лицо — один и тот же процесс. Поэтому по фото лица мы можем определить вашу системную причину.</strong>
         </p>
       </PainBlock>
 
+      <StatsStrip />
       <Separator />
       <HowItWorks />
+      <Separator />
+      <Reviews />
       <Separator />
       <TrustBlock />
       <Separator />
@@ -52,6 +59,9 @@ export default function LegsPage() {
 
       <Separator />
       <FaqSection />
+
+      <StickyBottomCTA scenario={SCENARIO} />
+      <SocialProofToast />
     </>
   );
 }

@@ -5,6 +5,9 @@ let _pool: Pool | null = null;
 
 function getPool(): Pool {
   if (!_pool) {
+    if (!process.env.DATABASE_URL) {
+      console.error("[db] DATABASE_URL is not set — all queries will fail");
+    }
     const isLocal = (process.env.DATABASE_URL ?? "").includes("localhost");
     _pool = new Pool({
       connectionString:      process.env.DATABASE_URL,

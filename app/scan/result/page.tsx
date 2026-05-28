@@ -38,15 +38,18 @@ export default function ResultPage() {
 
   const [result, setResult] = useState<AiResultType | null>(aiResult);
   const [name, setName] = useState<string | null>(null);
+  const [resultToken, setResultToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(!aiResult);
   const [errorType, setErrorType] = useState<"error" | "expired" | null>(null);
 
   useEffect(() => {
-    const resultToken = sessionStorage.getItem("edm_result_token");
-    if (!resultToken) {
+    const storedToken = sessionStorage.getItem("edm_result_token");
+    if (!storedToken) {
       router.replace("/scan");
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResultToken(storedToken);
 
     // Restore name entered on email screen
     const storedName = sessionStorage.getItem("edm_user_name");
@@ -57,6 +60,7 @@ export default function ResultPage() {
     if (aiResult) return;
 
     const stored = sessionStorage.getItem("edm_ai_result");
+
     if (stored) {
       try {
         setResult(JSON.parse(stored) as AiResultType);
@@ -69,7 +73,7 @@ export default function ResultPage() {
 
     void (async () => {
       try {
-        const res = await fetch(`/api/result/${resultToken}`);
+        const res = await fetch(`/api/result/${storedToken}`);
         const data = (await res.json()) as {
           success?: boolean;
           ai_result?: AiResultType;
@@ -140,5 +144,5 @@ export default function ResultPage() {
     );
   }
 
-  return <ResultView name={name} result={result} frontalPhotoUrl={frontalPhoto} />;
+  return <ResultView name={name} result={result} frontalPhotoUrl={frontalPhoto} resultToken={resultToken} />;
 }

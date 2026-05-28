@@ -8,9 +8,10 @@ type Props = {
   discountPercent: number;
   priceFormatted: string;
   sentinelId: string;
+  resultToken?: string;
 };
 
-export function StickyBottomCTA({ url, discountPercent, priceFormatted, sentinelId }: Props) {
+export function StickyBottomCTA({ url, discountPercent, priceFormatted, sentinelId, resultToken }: Props) {
   const [visible, setVisible] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -53,7 +54,17 @@ export function StickyBottomCTA({ url, discountPercent, priceFormatted, sentinel
         target="_blank"
         rel="noopener noreferrer"
         data-event="cta_sticky"
-        onClick={scrollToPrograms}
+        onClick={() => {
+          scrollToPrograms();
+          if (resultToken) {
+            fetch("/api/scan/cta-click", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ result_token: resultToken }),
+              keepalive: true,
+            }).catch(() => {});
+          }
+        }}
         className="flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold cursor-pointer transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 btn-emerald-cta"
       >
         Применить скидку {discountPercent}% — {priceFormatted}

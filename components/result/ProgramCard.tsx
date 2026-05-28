@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 type ProgramData = {
@@ -13,13 +15,23 @@ type ProgramData = {
 type Props = {
   program: ProgramData;
   variant: "primary" | "alternative";
+  resultToken?: string;
 };
 
 function formatPrice(kopecks: number): string {
   return `${(kopecks / 100).toLocaleString("ru-RU")} ₽`;
 }
 
-export function ProgramCard({ program, variant }: Props) {
+function trackCtaClick(resultToken: string) {
+  fetch("/api/scan/cta-click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ result_token: resultToken }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
+export function ProgramCard({ program, variant, resultToken }: Props) {
   const isPrimary = variant === "primary";
 
   return (
@@ -64,6 +76,7 @@ export function ProgramCard({ program, variant }: Props) {
         rel="noopener noreferrer"
         data-event="cta_to_upsell"
         data-variant={variant}
+        onClick={() => { if (resultToken) trackCtaClick(resultToken); }}
         className={`flex items-center justify-center w-full h-14 rounded-full text-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer active:scale-[0.98] ${
           isPrimary
             ? "btn-emerald-cta"

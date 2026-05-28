@@ -27,9 +27,10 @@ type Props = {
   result: AiResultType;
   name: string | null;
   frontalPhotoUrl?: string | null;
+  resultToken?: string | null;
 };
 
-export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
+export function ResultPageLayout({ result, name, frontalPhotoUrl, resultToken }: Props) {
   const displayName = name ?? result.user_name ?? "Марина";
   const [activeZone, setActiveZone] = useState<ZoneKey | null>(null);
   const { keypoints, status } = useFaceLandmarks(frontalPhotoUrl ?? null);
@@ -171,6 +172,7 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
         <div id="programs-section" className="flex flex-col gap-6">
           <ProgramCard
             variant="primary"
+            resultToken={resultToken ?? undefined}
             program={{
               title: primaryPricing.title,
               subtitle: primarySubtitle,
@@ -183,6 +185,7 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
           />
           <ProgramCard
             variant="alternative"
+            resultToken={resultToken ?? undefined}
             program={{
               title: alternativePricing.title,
               subtitle: alternativeSubtitle,
@@ -206,6 +209,7 @@ export function ResultPageLayout({ result, name, frontalPhotoUrl }: Props) {
         url={primaryPricing.url}
         discountPercent={primaryPricing.discount_percent}
         priceFormatted={priceFormatted}
+        resultToken={resultToken ?? undefined}
       />
     </>
   );
