@@ -100,7 +100,7 @@ function PhotoCard({
         ref={inputRef}
         type="file"
         accept={ACCEPTED_TYPES}
-        capture={isDesktop ? undefined : "user"}
+        capture={undefined}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

@@ -110,6 +110,27 @@ export default function AnalyzingPage() {
     return () => clearInterval(t);
   }, []);
 
+  // Preload face detection while AI analysis is running (user waits ~60s anyway)
+  useEffect(() => {
+    const frontalUrl = photos.find((p) => p.slot === "frontal")?.previewUrl ?? null;
+    if (!frontalUrl) return;
+
+    try { if (sessionStorage.getItem("edm_landmarks_v2")) return; } catch { /* ignore */ }
+
+    void (async () => {
+      try {
+        const { loadDetector, detectLandmarks } = await import("@/lib/face-detection/detect");
+        await loadDetector();
+        const img = new window.Image();
+        img.src = frontalUrl;
+        await new Promise<void>((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); });
+        const kps = await detectLandmarks(img);
+        if (kps) sessionStorage.setItem("edm_landmarks_v2", JSON.stringify(kps));
+      } catch { /* silent — result page will re-run if needed */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void runAnalysis();

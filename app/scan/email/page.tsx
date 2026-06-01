@@ -1,94 +1,99 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import Script from "next/script";
+import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan } from "@/components/scan/scan-provider";
 
-const schema = z.object({
-  name:  z.string().regex(/^[a-zA-Zа-яА-ЯёЁ\s\-]{1,60}$/, "Имя содержит недопустимые символы"),
-  email: z.string().email("Email невалидный").max(254),
-});
-type FormData = z.infer<typeof schema>;
+const WIDGET_SCRIPT_ID = "873daee45f3b2bb4cbc8600bec9180aede157f00";
+const WIDGET_SCRIPT_SRC =
+  "https://xn--j1amdg6b.xn----7sbhdegumjf0agbb9c1e.xn--p1ai/pl/lite/widget/script?id=1610554";
 
 export default function EmailPage() {
-  const router  = useRouter();
+  const router = useRouter();
   const { aiResult } = useScan();
   const [redFlag, setRedFlag] = useState(false);
+  const capturedRef = useRef<{ name: string; email: string }>({ name: "", email: "" });
 
   useEffect(() => {
     const token = sessionStorage.getItem("edm_result_token");
     if (!token) { router.replace("/scan"); return; }
 
-    // Read red_flag from stored ai_result or context
     const stored = sessionStorage.getItem("edm_ai_result");
     const result = aiResult ?? (stored ? JSON.parse(stored) : null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (result?.red_flag) setRedFlag(true);
   }, [router, aiResult]);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  async function onSubmit(values: FormData) {
+  async function handleWidgetSuccess(name: string, email: string) {
     const sessionToken = sessionStorage.getItem("edm_session_token");
     const resultToken  = sessionStorage.getItem("edm_result_token");
 
-    if (!sessionToken || !resultToken) {
-      toast.error("Сессия устарела. Начните заново.");
-      router.replace("/scan");
-      return;
+    if (name) sessionStorage.setItem("edm_user_name", name);
+
+    // Fire-and-forget to our API for DB tracking + Telegram alert
+    if (sessionToken && resultToken && name && email) {
+      fetch("/api/scan/submit-email", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ session_token: sessionToken, result_token: resultToken, name, email }),
+        keepalive: true,
+      }).catch(() => {});
     }
-
-    const res = await fetch("/api/scan/submit-email", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ session_token: sessionToken, result_token: resultToken, ...values }),
-    });
-
-    const data = (await res.json()) as {
-      success?: boolean;
-      result_token?: string;
-      special_price_expires_at?: string;
-      error?: { code: string; message: string };
-    };
-
-    if (!res.ok || !data.success) {
-      if (data.error?.code === "SESSION_NOT_FOUND") {
-        sessionStorage.clear();
-        toast.error("Сессия устарела. Начните новый разбор.");
-        router.replace("/scan");
-        return;
-      }
-      toast.error(data.error?.message ?? "Ошибка. Попробуйте ещё раз.");
-      return;
-    }
-
-    if (data.special_price_expires_at) {
-      sessionStorage.setItem("edm_expires_at", data.special_price_expires_at);
-    }
-    sessionStorage.setItem("edm_user_name", values.name);
 
     router.push("/scan/result");
   }
+
+  useEffect(() => {
+    // Capture form data before the widget submits it
+    function onSubmit(e: Event) {
+      const form = e.target as HTMLFormElement;
+      const data = new FormData(form);
+      const name =
+        (data.get("name") as string) ||
+        (data.get("user[name]") as string) ||
+        (data.get("lname") as string) || "";
+      const email =
+        (data.get("email") as string) ||
+        (data.get("user[email]") as string) || "";
+      capturedRef.current = { name: name.trim(), email: email.trim() };
+    }
+
+    // GetCourse lite widget fires postMessage on successful submission
+    function onMessage(e: MessageEvent) {
+      try {
+        const d = e.data as Record<string, unknown> | null;
+        if (!d || typeof d !== "object") return;
+        const isSuccess =
+          d.type === "lp_form_sent" ||
+          d.type === "form_sent" ||
+          d.action === "formSent" ||
+          d.event === "form_sent" ||
+          d.status === "success";
+        if (isSuccess) {
+          const { name, email } = capturedRef.current;
+          void handleWidgetSuccess(name, email);
+        }
+      } catch { /* ignore */ }
+    }
+
+    document.addEventListener("submit", onSubmit, true);
+    window.addEventListener("message", onMessage);
+    return () => {
+      document.removeEventListener("submit", onSubmit, true);
+      window.removeEventListener("message", onMessage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold mb-1">Готово!</h1>
         <p className="text-muted-foreground text-sm">
-          Введите имя и email, чтобы открыть разбор
+          Введите данные, чтобы открыть разбор
         </p>
       </div>
 
@@ -96,29 +101,17 @@ export default function EmailPage() {
         <Alert variant="destructive">
           <AlertTriangle size={16} />
           <AlertDescription className="text-sm">
-            На фото есть признаки, которые требуют внимания врача. Подробности — после ввода email.
+            На фото есть признаки, которые требуют внимания врача. Подробности — после ввода данных.
           </AlertDescription>
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="name">Имя</Label>
-          <Input id="name" placeholder="Марина" {...register("name")} />
-          {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="marina@example.ru" {...register("email")} />
-          {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-        </div>
-
-        <Button type="submit" size="lg" className="w-full h-14 text-lg font-bold btn-emerald-cta" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
-          Получить разбор
-        </Button>
-      </form>
+      {/* GetCourse lite widget renders here */}
+      <Script
+        id={WIDGET_SCRIPT_ID}
+        src={WIDGET_SCRIPT_SRC}
+        strategy="afterInteractive"
+      />
 
       <p className="text-xs text-muted-foreground text-center">
         Мы продублируем разбор на вашу почту. Email не передаём третьим лицам, отписаться можно в один клик.

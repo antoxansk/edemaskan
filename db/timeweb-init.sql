@@ -74,7 +74,9 @@ CREATE TABLE IF NOT EXISTS scan_sessions (
 
   funnel_stage TEXT NOT NULL DEFAULT 'started' CHECK (
     funnel_stage IN ('started','photos_uploaded','questionnaire_done','ai_analyzed','email_submitted','red_flagged')
-  )
+  ),
+
+  cta_clicked_at TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_scan_sessions_created_at        ON scan_sessions (created_at DESC);
