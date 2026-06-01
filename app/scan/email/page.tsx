@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useScan } from "@/components/scan/scan-provider";
 
-const WIDGET_SCRIPT_ID  = "873daee45f3b2bb4cbc8600bec9180aede157f00";
-const WIDGET_SCRIPT_SRC = "https://xn--j1amdg6b.xn----7sbhdegumjf0agbb9c1e.xn--p1ai/pl/lite/widget/script?id=1610554";
+const schema = z.object({
+  name:  z.string().regex(/^[a-zA-Zа-яА-ЯёЁ\s\-]{1,60}$/, "Только буквы, пробелы и дефис"),
+  phone: z.string().min(7, "Введите номер телефона").max(20),
+  email: z.string().email("Неверный формат email").max(254),
+});
+type FormData = z.infer<typeof schema>;
 
 export default function EmailPage() {
-  const router = useRouter();
+  const router  = useRouter();
   const { aiResult } = useScan();
-  const [redFlag, setRedFlag]     = useState(false);
-  const [widgetError, setWidgetError] = useState(false);
-  const capturedRef = useRef<{ name: string; email: string }>({ name: "", email: "" });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [redFlag, setRedFlag] = useState(false);
 
   useEffect(() => {
     const token = sessionStorage.getItem("edm_result_token");
@@ -27,89 +35,53 @@ export default function EmailPage() {
     if (result?.red_flag) setRedFlag(true);
   }, [router, aiResult]);
 
-  async function handleWidgetSuccess(name: string, email: string) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  async function onSubmit(values: FormData) {
     const sessionToken = sessionStorage.getItem("edm_session_token");
     const resultToken  = sessionStorage.getItem("edm_result_token");
 
-    if (name) sessionStorage.setItem("edm_user_name", name);
-
-    if (sessionToken && resultToken && name && email) {
-      fetch("/api/scan/submit-email", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ session_token: sessionToken, result_token: resultToken, name, email }),
-        keepalive: true,
-      }).catch(() => {});
+    if (!sessionToken || !resultToken) {
+      toast.error("Сессия устарела. Начните заново.");
+      router.replace("/scan");
+      return;
     }
+
+    const res = await fetch("/api/scan/submit-email", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ session_token: sessionToken, result_token: resultToken, ...values }),
+    });
+
+    const data = (await res.json()) as {
+      success?: boolean;
+      result_token?: string;
+      special_price_expires_at?: string;
+      error?: { code: string; message: string };
+    };
+
+    if (!res.ok || !data.success) {
+      if (data.error?.code === "SESSION_NOT_FOUND") {
+        sessionStorage.clear();
+        toast.error("Сессия устарела. Начните новый разбор.");
+        router.replace("/scan");
+        return;
+      }
+      toast.error(data.error?.message ?? "Ошибка. Попробуйте ещё раз.");
+      return;
+    }
+
+    if (data.special_price_expires_at) {
+      sessionStorage.setItem("edm_expires_at", data.special_price_expires_at);
+    }
+    sessionStorage.setItem("edm_user_name", values.name);
 
     router.push("/scan/result");
   }
-
-  // Inject the GetCourse widget script directly into the container div so it
-  // renders the form inline (Next.js <Script> injects into <head>, which
-  // prevents the widget from knowing where to draw the form).
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const script = document.createElement("script");
-    script.id   = WIDGET_SCRIPT_ID;
-    script.src  = WIDGET_SCRIPT_SRC;
-    script.async = true;
-    script.onerror = () => setWidgetError(true);
-    container.appendChild(script);
-
-    // Show fallback if form doesn't appear within 8 seconds
-    const fallbackTimer = setTimeout(() => {
-      const hasForm = container.querySelector("form, input, iframe");
-      if (!hasForm) setWidgetError(true);
-    }, 8000);
-
-    return () => {
-      clearTimeout(fallbackTimer);
-      if (container.contains(script)) container.removeChild(script);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Capture form field values before widget submits
-  useEffect(() => {
-    function onSubmit(e: Event) {
-      const form = e.target as HTMLFormElement;
-      const data = new FormData(form);
-      const name =
-        (data.get("name")        as string) ||
-        (data.get("user[name]")  as string) ||
-        (data.get("lname")       as string) || "";
-      const email =
-        (data.get("email")       as string) ||
-        (data.get("user[email]") as string) || "";
-      capturedRef.current = { name: name.trim(), email: email.trim() };
-    }
-
-    // GetCourse lite fires postMessage on success
-    function onMessage(e: MessageEvent) {
-      try {
-        const d = e.data as Record<string, unknown> | null;
-        if (!d || typeof d !== "object") return;
-        const isSuccess =
-          d.type  === "lp_form_sent" ||
-          d.type  === "form_sent"    ||
-          d.action === "formSent"    ||
-          d.event  === "form_sent"   ||
-          d.status === "success";
-        if (isSuccess) void handleWidgetSuccess(capturedRef.current.name, capturedRef.current.email);
-      } catch { /* ignore */ }
-    }
-
-    document.addEventListener("submit", onSubmit, true);
-    window.addEventListener("message", onMessage);
-    return () => {
-      document.removeEventListener("submit", onSubmit, true);
-      window.removeEventListener("message", onMessage);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -129,25 +101,33 @@ export default function EmailPage() {
         </Alert>
       )}
 
-      {/* Widget container — script is injected here so it renders inline */}
-      <div ref={containerRef} className="min-h-50" />
-
-      {/* Fallback if widget fails to load */}
-      {widgetError && (
-        <div className="flex flex-col gap-3 p-4 rounded-2xl border border-border bg-bg-card text-center">
-          <p className="text-sm text-muted-foreground">Форма не загрузилась. Нажмите кнопку чтобы продолжить.</p>
-          <button
-            type="button"
-            onClick={() => router.push("/scan/result")}
-            className="h-12 rounded-full bg-primary text-text-inverse font-semibold text-base"
-          >
-            Перейти к результату →
-          </button>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="name">Имя</Label>
+          <Input id="name" placeholder="Марина" autoComplete="given-name" {...register("name")} />
+          {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
         </div>
-      )}
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="phone">Телефон</Label>
+          <Input id="phone" type="tel" placeholder="+7 900 000 00 00" autoComplete="tel" {...register("phone")} />
+          {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" placeholder="marina@example.ru" autoComplete="email" {...register("email")} />
+          {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+        </div>
+
+        <Button type="submit" size="lg" className="w-full h-14 text-lg font-bold btn-emerald-cta" disabled={isSubmitting}>
+          {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
+          Получить разбор
+        </Button>
+      </form>
 
       <p className="text-xs text-muted-foreground text-center">
-        Мы продублируем разбор на вашу почту. Email не передаём третьим лицам, отписаться можно в один клик.
+        Мы продублируем разбор на вашу почту. Данные не передаём третьим лицам, отписаться можно в один клик.
       </p>
     </div>
   );

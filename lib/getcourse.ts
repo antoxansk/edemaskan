@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 export type GetcoursePayload = {
   email:       string;
   first_name:  string;
+  phone?:      string;
   addfields:   Record<string, string>;
   user_groups: string[];
 };
@@ -14,8 +15,12 @@ export type GetcourseSendResult =
 
 export async function sendToGetcourse(payload: GetcoursePayload): Promise<GetcourseSendResult> {
   const url = `https://${env.GETCOURSE_SCHOOL_DOMAIN}.getcourse.ru/pl/api/users`;
+  const user: Record<string, unknown> = {
+    email: payload.email, first_name: payload.first_name, addfields: payload.addfields,
+  };
+  if (payload.phone) user.phone = payload.phone;
   const jsonPayload = {
-    user:    { email: payload.email, first_name: payload.first_name, addfields: payload.addfields },
+    user,
     system:  { refresh_if_exists: 1 },
     session: { user_groups: payload.user_groups },
   };
@@ -71,6 +76,7 @@ export function buildCtaClickPayload(email: string, name: string): GetcoursePayl
 export function buildGetcoursePayload(session: {
   email:                    string;
   name:                     string;
+  phone?:                   string | null;
   entry_scenario:           string;
   primary_cause_key:        string | null;
   secondary_cause_key:      string | null;
@@ -93,6 +99,7 @@ export function buildGetcoursePayload(session: {
   return {
     email:      session.email,
     first_name: session.name,
+    ...(session.phone ? { phone: session.phone } : {}),
     addfields: {
       edm_entry_scenario:           session.entry_scenario,
       edm_primary_cause:            session.primary_cause_key           ?? "",

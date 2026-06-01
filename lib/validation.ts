@@ -97,6 +97,7 @@ export const SubmitEmailRequest = z.object({
   result_token:  z.string().min(24).max(48),
   name:  z.string().regex(/^[a-zA-Zа-яА-ЯёЁ\s\-]{1,60}$/, "Имя содержит недопустимые символы"),
   email: z.string().email().max(254),
+  phone: z.string().min(7).max(20).optional(),
 });
 
 export type SubmitEmailRequestType = z.infer<typeof SubmitEmailRequest>;

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { session_token, result_token, name, email } = parsed.data;
+  const { session_token, result_token, name, email, phone } = parsed.data;
 
   type SessionRow = {
     id: string;
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
   const gcPayload = buildGetcoursePayload({
     email,
     name,
+    phone,
     entry_scenario:           session.entry_scenario,
     primary_cause_key:        session.primary_cause_key,
     secondary_cause_key:      secondaryCauseKey,
