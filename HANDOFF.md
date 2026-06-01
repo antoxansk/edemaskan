@@ -1,6 +1,6 @@
 # HANDOFF.md — Edemaskan
 
-> Сгенерировано: 2026-05-19
+> Обновлено: 2026-06-02
 > Проект: Edemaskan — AI-сканер отёчности лица (лид-магнит УПДН)
 > Деплой: https://edemaskan.lid.nutritionist4day.ru
 > Репозиторий: github.com/antoxansk/edemaskan
@@ -9,247 +9,186 @@
 
 ## 1. Статус проекта
 
-- **Этап:** Deploy (продакшн, принимает трафик)
-- **Готовность:** ~99% — все фичи v5 + AI landmark detection реализованы и работают
-- **Последний коммит:** `d312880 fix: scale landmark coordinates back to natural image space`
+- **Этап:** Продакшн, принимает трафик
+- **Готовность:** ~100% MVP — все фичи реализованы и работают
+- **Последний коммит:** `d501f71 feat: gallery upload + face detection preload + getcourse widget + db schema fix`
 - **Ветка:** main
 - **Хостинг:** Render.com (free tier, keep-alive через cron-job.org)
+- **БД:** Supabase PostgreSQL, подключение через **Transaction Pooler порт 6543** (`aws-1-eu-central-1.pooler.supabase.com:6543`)
 
 ---
 
-## 2. Что сделано в сессии 2026-05-19
+## 2. Что сделано в сессии 2026-06-02
 
-| Задача | Статус | Файлы |
-|--------|--------|-------|
-| AI Face Zone Detection — полная реализация | Завершено | `lib/face-detection/` (3 новых файла), `hooks/useFaceLandmarks.ts`, `components/result/FaceZoneCanvas.tsx`, `ZoneTagBar.tsx`, `ZoneDescriptionCard.tsx` |
-| Обновление `ResultPageLayout` — AI flow | Завершено | `components/result/ResultPageLayout.tsx` |
-| Fix сборки: Turbopack + @mediapipe/face_mesh | Завершено | `next.config.ts`, `lib/face-detection/mediapipe-stub.ts` |
-| Fix координат: canvas→natural image space | Завершено | `lib/face-detection/detect.ts`, `hooks/useFaceLandmarks.ts` |
-| Emerald shimmer на всех CTA флоу сканирования | Завершено | `app/scan/page.tsx`, `photos/`, `questionnaire/`, `email/` |
-| Emerald shimmer на кнопках результата | Завершено | `components/result/ProgramCard.tsx`, `StickyBottomCTA.tsx` |
-
-### Что сделано в сессии 2026-05-18 (предыдущей)
-
-| Задача | Статус | Файлы |
-|--------|--------|-------|
-| Дизайн-правки v5: Emerald shimmer-кнопки на лендинге | Завершено | `app/globals.css`, `components/landing/hero.tsx`, `final-cta.tsx` |
-| Stats Strip (полоса цифр + count-up анимация) | Завершено | `components/landing/stats-strip.tsx` (новый) |
-| Sticky Bottom CTA на мобайле (лендинг) | Завершено | `components/landing/sticky-bottom-cta.tsx` (новый) |
-| Social Proof Toasts (Live-уведомления) | Завершено | `components/landing/social-proof-toast.tsx` (новый), `lib/social-proof/data.ts` |
-| Копирайт v5 (экраны 1–4) | Завершено | `app/(landings)/morning-face/page.tsx` |
-| Отзывы (3 карточки) | Завершено | `components/landing/reviews.tsx` (новый) |
-| Живой счётчик: GET /api/counter + useCounter | Завершено | `app/api/counter/route.ts`, `hooks/useCounter.ts`, `components/landing/live-counter.tsx` |
+| Задача | Статус | Файлы / Действие |
+|--------|--------|------------------|
+| **Починена БД** — пароль со скобками | ✅ Завершено | DATABASE_URL исправлен: убраны `[` `]` вокруг пароля, порт 5432→6543. Пароль `DnRIB28h50WxOcGY`. После обслуживания Supabase 26 мая pooler стал строже к auth |
+| Диагностический endpoint `/api/health/db` | ✅ Завершено | `app/api/health/db/route.ts` — защищён CRON_SECRET, показывает host/port/user + список таблиц |
+| Trim DATABASE_URL + connection logging | ✅ Завершено | `lib/db.ts` — `.trim()` на connectionString, логирует host:port без пароля |
+| GetCourse виджет на шаге email | ✅ Завершено | `app/scan/email/page.tsx` — заменена кастомная форма на виджет `id=1610554`. Перехват submit+postMessage → fire-and-forget к нашему API |
+| Preload face detection на /scan/analyzing | ✅ Завершено | `app/scan/analyzing/page.tsx` — пока OpenRouter анализирует (~60с), параллельно грузится TF.js модель и запускается детекция. К шагу результата кэш уже готов |
+| Загрузка фото из галереи | ✅ Завершено | `app/scan/photos/page.tsx` — убран `capture="user"`, теперь iOS/Android показывают выбор «Камера / Галерея» |
+| `cta_clicked_at` добавлена в db schema | ✅ Завершено | `db/timeweb-init.sql` — добавлена колонка (в живой БД уже была через Supabase SQL Editor) |
 
 ---
 
-## 3. Архитектурные решения
+## 3. Архитектура — ключевые решения
 
-### AI Face Zone Detection — клиентский TFJS inference
-- **Почему клиентский:** фото не покидают браузер → инвариант И-1 (нулевое хранение) соблюдён
-- **Как работает:**
-  1. `hooks/useFaceLandmarks.ts` lazy-импортирует `lib/face-detection/detect.ts` внутри `useEffect`
-  2. `detect.ts` грузит MediaPipe Face Mesh через `@tensorflow-models/face-landmarks-detection` с `runtime: "tfjs"`
-  3. Фото ресайзится до canvas 640px → inference → 468 landmarks в координатах canvas
-  4. Координаты масштабируются обратно в пространство натурального изображения (`kp.x * naturalW/canvasW`)
-  5. `FaceZoneCanvas` масштабирует из naturalW/H в displayW/H через `scaleLandmarks()`
-- **Кэш:** `sessionStorage["edm_landmarks_v2"]` — пересчёт не нужен при повторном открытии
-- **Не менять:** ключ кэша `v2` — если изменить формат keypoints, поднять до `v3`, иначе старые неверные данные из кэша продолжат использоваться
+### БД: pg (node-postgres) через Supabase Transaction Pooler
+- **URL формат:** `postgresql://postgres.plgsjizgtfcdftisaxcg:ПАРОЛЬ@aws-1-eu-central-1.pooler.supabase.com:6543/postgres`
+- **ВАЖНО:** порт **6543** (Transaction Pooler), НЕ 5432 (Session Pooler) и НЕ Direct connection (IPv6-only)
+- **Пароль:** `DnRIB28h50WxOcGY` — оригинальный, не менять без нужды
+- **Файл:** `lib/db.ts` — singleton Pool с SSL + trim connectionString
 
-### @mediapipe/face_mesh Stub (Turbopack fix)
-- **Проблема:** `@tensorflow-models/face-landmarks-detection` в ESM-бандле делает `import * as t from "@mediapipe/face_mesh"` (строка 17), но этот пакет — IIFE без ESM-экспортов. Turbopack крашится при анализе.
-- **Решение:** `lib/face-detection/mediapipe-stub.ts` экспортирует класс `FaceMesh` и константы как заглушки. `next.config.ts` → `turbopack.resolveAlias` перенаправляет импорт на стаб.
-- **Не менять:** если убрать `turbopack.resolveAlias` или стаб — сборка упадёт с `Export FaceMesh doesn't exist`
-- **Файлы:** `next.config.ts` (строки resolveAlias), `lib/face-detection/mediapipe-stub.ts`
+### Почему сломалась БД (2026-06-01)
+- Оригинальный URL содержал `[DnRIB28h50WxOcGY]` (пароль в скобках)
+- До обслуживания Supabase (26 мая 2026) pooler принимал пароль со скобками
+- После обслуживания — строгая проверка, скобки стали частью неверного пароля
+- **Лечение:** убрать `[` `]` из пароля в DATABASE_URL
 
-### Coordinate Scaling: canvas → natural image → display
-- **Проблема:** TFJS возвращает keypoints в координатах canvas (≤640px). Фото с телефона имеет naturalWidth 3000–4000px. Деление на naturalWidth давало scale ~0.08 — все зоны сжимались в угол.
-- **Решение:** в `detect.ts` после inference умножаем `kp.x *= naturalWidth/canvasWidth` и аналогично для Y. Теперь keypoints в naturalW/H пространстве. `FaceZoneCanvas` затем делит на naturalW/H и умножает на displayW/H.
-- **Файл:** `lib/face-detection/detect.ts`, последние строки `detectLandmarks()`
+### GetCourse виджет (шаг email)
+- Виджет `id=1610554` от УПДН собирает имя/телефон/email → отправляет в GetCourse
+- Наш код перехватывает `document.submit` (capture phase) для извлечения name+email
+- Слушает `window.message` (postMessage от виджета) на успех → redirect к результату
+- Параллельно fire-and-forget к `/api/scan/submit-email` для DB-записи + Telegram алерта
+- **Важно:** если виджет не шлёт postMessage, переход не произойдёт. Нужно проверить в живом тесте
 
-### ResultPageLayout — прогрессивное улучшение
-- **idle/loading:** мгновенно показываем `FacePhotoWithZones` (старые эллипсы) + маленький spinner-бейдж снизу «AI определяет контуры…»
-- **done + keypoints:** заменяем на `FaceZoneCanvas` + `ZoneTagBar` + `ZoneDescriptionCard`
-- **no-face/error:** оставляем `FacePhotoWithZones` + сообщение с кнопкой «Сделать фото заново»
-- **Почему так:** пользователь всегда видит фото сразу, AI-контуры — прогрессивное улучшение
+### Face Detection preload
+- На шаге `/scan/analyzing`: запускается `loadDetector()` + `detectLandmarks()` в фоне
+- К моменту перехода на результат (`/scan/result`) кэш `edm_landmarks_v2` уже готов
+- `useFaceLandmarks` находит кэш и показывает зоны моментально
 
-### Фото никогда не хранятся (И-1)
-- **Как работает:** фото → base64 → OpenRouter → ответ → buffer.fill(0) → null
-- **Не менять:** любое промежуточное хранение фото — критический нарушитель
+### CTA-клик трекинг
+- Клик → `POST /api/scan/cta-click` (keepalive) → `cta_clicked_at` в БД → GetCourse группа `edemaskan_cta_clicked`
+- Идемпотентный (`WHERE cta_clicked_at IS NULL`)
 
-### Живой счётчик — считает из scan_sessions
-- **Как работает:** `COUNT(*) FROM scan_sessions WHERE email_submitted_at IS NOT NULL` + база 327
-- **Файл:** `app/api/counter/route.ts`
-- **Не менять:** база 327 — «досессионные» прохождения; без неё счётчик начнётся с 0
-
-### Sticky CTA и Social Proof Toast — самодостаточные клиентские компоненты
-- **Как работает:** `document.querySelector("[data-hero-section]")` и `[data-landing-footer]`
-- **Не менять:** атрибуты `data-hero-section` в `hero.tsx` и `data-landing-footer` в `footer-disclaimer.tsx`
-
-### Render free tier + cron-job.org Keep Alive
-- **Почему:** free tier засыпает через 15 мин без запросов → холодный старт ~10–15 сек → замедляет AI анализ
-- **Решение:** cron-job.org пингует `/api/health` каждые 10 мин
-- **Критично:** это также влияет на «Сессия не найдена» — если сервер заснул во время анализа, сессия теряется
+### Render + cron-job.org
+- Free tier засыпает через 15 мин → Keep Alive пингует `/api/health` каждые 10 мин
+- Cron-задания: `Authorization: Bearer CRON_SECRET` (пробел обязателен!)
+- Три задания: Keep Alive ✅, GetCourse Retry ❓ (Inactive — надо включить), Cleanup ❓ (была 500, теперь БД починена — вероятно заработает)
 
 ---
 
 ## 4. Известные проблемы
 
-| Проблема | Severity | Workaround / Причина |
-|----------|----------|----------------------|
-| `NEXT_PUBLIC_YANDEX_METRIKA_ID` не задан в Render | High | Метрика не работает. Получить ID, добавить в Render Environment |
-| GetCourse автоматизация не настроена | High | Лиды попадают в GetCourse, но письмо не уходит. IT УПДН настраивает воронку |
-| Медленный AI анализ (~60 сек) | Medium | Render free tier: cold start + OpenRouter latency. Решение: апгрейд Render или смена хостинга |
-| Медленный face landmark detection (~30 сек) | Medium | TFJS модель ~5MB грузится по сети при первом открытии результата. Решение: preload модели заранее |
-| Итоговое время флоу ~90 секунд | Medium | Сумма: анализ OpenRouter (60с) + TFJS inference (30с). Неприемлемо долго для продакшна |
-| «Сессия не найдена» | Medium | Render засыпает во время анализа → сессия теряется. Решение: апгрейд хостинга или увеличить таймаут |
-| Таймер на /scan/analyzing показывает 30с | Low | Нужно изменить на 60с — реальное время ближе к 60с. Файл: `app/scan/analyzing/page.tsx` |
-| Счётчик на лендинге кэшируется 30с | Low | Ожидаемо. `/api/counter` возвращает `s-maxage=30` |
+| Проблема | Severity | Статус | Следующий шаг |
+|----------|----------|--------|---------------|
+| GetCourse виджет — нужна проверка postMessage | High | ❓ Нужен живой тест | Пройти флоу до шага email, заполнить виджет, убедиться что переходит к результату |
+| GetCourse Retry cron — Inactive | Medium | ❌ Не включён | cron-job.org → включить задание |
+| GetCourse дожим 48ч для не-кликнувших | Medium | ❌ Не настроен | IT УПДН: инструкция в разделе 6 |
+| Медленный AI анализ (~60 сек) | Medium | Открыто | Render free tier. Решение: апгрейд (~$7/мес) |
+| «Сессия не найдена» | Medium | Открыто | Render засыпает во время анализа. Решение: апгрейд хостинга |
 
 ---
 
 ## 5. Gotchas (подводные камни)
 
-1. **`lib/face-detection/mediapipe-stub.ts`** — без него Turbopack упадёт при `pnpm build`. Файл должен экспортировать `class FaceMesh {}` и все FACEMESH_* константы.
+1. **Transaction Pooler порт 6543** — используем порт 6543, не 5432 (Session) и не прямое подключение (IPv6)
 
-2. **`next.config.ts` → `turbopack.resolveAlias`** — не путать с `webpack`. Next.js 16 использует Turbopack по умолчанию. Любая `webpack` конфиг-функция → ошибка сборки.
+2. **Пароль БД без скобок** — в DATABASE_URL пароль `DnRIB28h50WxOcGY` должен быть БЕЗ `[` `]`
 
-3. **Кэш landmarks `edm_landmarks_v2`** — если меняешь формат keypoints (например, добавляешь поля), нужно поднять версию до `v3` в `hooks/useFaceLandmarks.ts`, иначе старые юзеры получат неверные данные из кэша.
+3. **`lib/env.ts`** — все `require()` вызываются при загрузке модуля. Если хоть одна переменная отсутствует — падает весь модуль → любой маршрут вернёт 500
 
-4. **Координаты keypoints в natural-image-пространстве** — `FaceZoneCanvas` ожидает keypoints в пространстве `img.naturalWidth × img.naturalHeight`. Если меняешь `detect.ts`, убедись что масштабирование `scaleBackX/Y` сохраняется.
+4. **`cron-job.org` Authorization** — значение `Bearer TOKEN` (пробел обязателен!)
 
-5. **`data-hero-section` в `components/landing/hero.tsx`** — атрибут на `<section>`. Без него `StickyBottomCTA` и `SocialProofToast` не найдут якорь.
+5. **`lib/face-detection/mediapipe-stub.ts`** — без него Turbopack упадёт при `pnpm build`
 
-6. **`data-landing-footer` в `components/shared/footer-disclaimer.tsx`** — нужен обоим компонентам для остановки.
+6. **`next.config.ts` → `turbopack.resolveAlias`** — перенаправляет `@mediapipe/face_mesh` на стаб. Убрать = сборка упадёт
 
-7. **`lib/photo-compression.ts`** — `compressPhoto` возвращает `{file, dataUrl, sizeBytes}`. Передавать `compressed.file`, не оригинал.
+7. **Кэш landmarks `edm_landmarks_v2`** — если меняешь формат keypoints, поднять до `v3`
 
-8. **`app/api/counter/route.ts`** — при ошибке Supabase возвращает base 327, не 500. Намеренно.
+8. **GetCourse виджет** — скрипт `id=873daee45f3b2bb4cbc8600bec9180aede157f00` читает свой `id` из DOM для рендера. Не менять id тег Script компонента
 
-9. **`app/api/cron/getcourse-retry/route.ts`** и **`cleanup/route.ts`** — требуют `Authorization: Bearer <CRON_SECRET>`.
+9. **`data-hero-section` в `hero.tsx`** — без него `StickyBottomCTA` и `SocialProofToast` не найдут якорь
 
-10. **Render free tier засыпает через 15 мин** — если пользователь открывает сервис после паузы, первый запрос (cold start) занимает 10–15 сек. Это основная причина «Сессия не найдена» и медленного анализа.
+10. **`app/api/counter/route.ts`** — при ошибке БД возвращает base 327 (намеренно, не ломает лендинг)
 
 ---
 
-## 6. Файлы, изменённые в сессии 2026-05-19
+## 6. Инструкция для IT УПДН — Дожим не-кликнувших
 
 ```
-# Новые файлы
-lib/face-detection/zones.ts           (8 зон: landmark-индексы, цвета, лейблы)
-lib/face-detection/detect.ts          (singleton TFJS detector + coordinate scaling)
-lib/face-detection/utils.ts           (scaleLandmarks, buildZonePolygons, getNeckPolygon)
-lib/face-detection/mediapipe-stub.ts  (Turbopack build fix: stub для @mediapipe/face_mesh)
-hooks/useFaceLandmarks.ts             (React-хук, sessionStorage кэш v2)
-components/result/FaceZoneCanvas.tsx  (фото + SVG landmark overlay)
-components/result/ZoneTagBar.tsx      (кликабельные теги зон)
-components/result/ZoneDescriptionCard.tsx (AI-разбор выбранной зоны)
+Триггер: пользователь добавлен в группу «edemaskan_leads»
+Задержка: 48 часов
+Условие: пользователь НЕ состоит в группе «edemaskan_cta_clicked»
+Действие: отправить письмо
 
-# Изменённые файлы
-next.config.ts                         (turbopack.resolveAlias для @mediapipe/face_mesh)
-components/result/ResultPageLayout.tsx (AI flow: idle→load→done, прогрессивное улучшение)
-app/scan/page.tsx                      (кнопка «Начать»: btn-emerald-cta, h-16)
-app/scan/photos/page.tsx               (кнопка «Продолжить»: btn-emerald-cta)
-app/scan/questionnaire/page.tsx        (кнопка «Получить разбор»: btn-emerald-cta)
-app/scan/email/page.tsx                (кнопка «Получить разбор»: btn-emerald-cta)
-components/result/ProgramCard.tsx      (primary CTA: btn-emerald-cta, emerald рамка/бейдж)
-components/result/StickyBottomCTA.tsx  (btn-emerald-cta вместо bg-accent)
+Тема: «[Имя], ваш разбор всё ещё ждёт вас»
+Текст: «Мы подготовили персональный разбор вашей отёчности.
+Посмотрите — там есть конкретные причины и план на 7 дней.»
+Кнопка: «Смотреть разбор» → ссылка: {user.edm_result_url}
 ```
 
----
-
-## 7. Изменения в базе данных
-
-Новых миграций нет. Используемые таблицы (схема без изменений):
-- `scan_sessions` — `email_submitted_at` используется счётчиком
-- `getcourse_sync_queue` — очередь лидов
+Также убедиться что в «Дополнительных полях» есть:
+- `edm_result_url` (строка) — ссылка на результат
+- `edm_cta_clicked` (строка) — флаг клика на CTA
 
 ---
 
-## 8. Переменные окружения
+## 7. Переменные окружения (актуально на 2026-06-02)
 
-**Не заданы в Render (критично):**
-
-| Переменная | Формат | Статус |
-|---|---|---|
-| `NEXT_PUBLIC_YANDEX_METRIKA_ID` | числовой ID | ❌ НЕ ЗАДАНА |
-
-**Существующие:**
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+**Render Environment (все заданы ✅):**
+- `DATABASE_URL` = `postgresql://postgres.plgsjizgtfcdftisaxcg:DnRIB28h50WxOcGY@aws-1-eu-central-1.pooler.supabase.com:6543/postgres`
 - `OPENROUTER_API_KEY`
 - `GETCOURSE_API_KEY`, `GETCOURSE_SCHOOL_DOMAIN`
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID_LEADS`, `TELEGRAM_CHAT_ID_ERRORS`
 - `CRON_SECRET`
-- `NEXT_PUBLIC_SITE_URL` — `https://edemaskan.lid.nutritionist4day.ru`
+- `NEXT_PUBLIC_SITE_URL` = `https://edemaskan.lid.nutritionist4day.ru`
+- `NEXT_PUBLIC_YANDEX_METRIKA_ID` = `109298719`
+
+**Локально `.env.local`:**
+- `DATABASE_URL` = тот же Transaction Pooler URI (заполнен)
+- Остальные переменные заполнены
 
 ---
 
-## 9. Следующие шаги
+## 8. Следующие шаги (по приоритету)
 
-**Приоритет 0 — Производительность (критично для UX):**
+**Приоритет 0 — Проверить живым тестом:**
 
-1. **Увеличить таймер на /scan/analyzing с 30с до 60с**
-   - Файл: `app/scan/analyzing/page.tsx` — найти константу таймера, изменить на 60
-   - Реальное время анализа ~60 сек, пользователь видит «0с» и думает что сломалось
+1. **Проверить GetCourse виджет** — пройти весь флоу до шага email, заполнить форму виджета, убедиться что переход к результату работает. Если нет — нужно добавить кнопку-fallback «Уже отправил → продолжить»
 
-2. **Апгрейд Render.com с free tier на paid**
-   - Причина: free tier засыпает → cold start 10–15с → «Сессия не найдена» + медленный анализ
-   - Цена: ~$7/мес. Устраняет 90% жалоб на скорость
-   - Альтернатива: переехать на Railway / Fly.io (схожие цены, лучший cold start)
+2. **Включить GetCourse Retry cron** на cron-job.org (сейчас Inactive)
 
-3. **Preload TFJS модели**
-   - Сейчас модель (~5MB) грузится только когда пользователь открывает страницу результата
-   - Можно начать загрузку раньше — например, на странице `/scan/analyzing`
-   - Это уберёт 15–20 сек ожидания на последнем экране
+**Приоритет 1 — Бизнес:**
 
-**Приоритет 1 — Внешние настройки:**
+3. **Настроить дожимную автоматизацию в GetCourse** (IT УПДН) — инструкция в разделе 6
 
-4. **Задать `NEXT_PUBLIC_YANDEX_METRIKA_ID` в Render**
-5. **Настроить автоматизацию в GetCourse** (IT УПДН)
-   - Триггер: добавление в группу `edemaskan_leads`
-   - Письмо с `{user.edm_result_url}`
+**Приоритет 2 — Производительность:**
 
-**Приоритет 2 — После первой недели трафика:**
+4. **Апгрейд Render.com с free tier на paid (~$7/мес)** — устраняет cold start + «Сессия не найдена»
 
-6. Проверить Supabase → `getcourse_sync_queue` — нет ли `failed_permanent`
-7. Проверить Supabase → `ai_errors` — паттерны ошибок OpenRouter
-8. Метрика → воронка: `landing_view` → `questionnaire_completed` → `result_view` → `cta_to_upsell`
+**Приоритет 3 — После первой недели трафика:**
 
-**Приоритет 3 — Опционально:**
-
-9. Распространить v5-копирайт на `/eye-bags`, `/face-oval`, `/legs`, `/rings`
-10. Добавить IP-лимит на `/api/counter` если начнут накручивать
+5. Supabase SQL Editor → проверить зависшие лиды: `SELECT * FROM getcourse_sync_queue WHERE status='failed_permanent'`
+6. Supabase → `ai_errors` — проверить паттерны ошибок OpenRouter
+7. Яндекс.Метрика → воронка: `landing_view` → `questionnaire_completed` → `result_view` → `cta_to_upsell`
 
 ---
 
-## Автоматические данные
+## 9. Последние коммиты
 
-### Последние коммиты
 ```
-d312880 fix: scale landmark coordinates back to natural image space
-d5c201a feat: apply emerald shimmer style to all scan flow CTAs
-b460a45 fix: resolve Turbopack build failure for TF.js face detection
-f3c12bf feat: AI face landmark zone detection on result page
-0d9ae96 docs: session handoff 2026-05-18 — landing v5 complete
-6d3a105 feat: live scan counter — increments on every completed scan
-```
-
-### TODO в коде
-```
-app/scan/analyzing/page.tsx — таймер 30с нужно изменить на 60с
+d501f71 feat: gallery upload + face detection preload + getcourse widget + db schema fix
+0a0def0 fix: trim DATABASE_URL + add connection diagnostics to health/db
+4a4bae4 chore: add /api/health/db diagnostic endpoint (protected by CRON_SECRET)
+c767d5d feat: CTA click tracking + remove Vercel + DB stability fixes
+7ab45cc feat: migrate DB from Supabase to pg + add Dockerfile for Amvera
 ```
 
 ---
 
-## Промпт для начала следующей сессии
+## 10. Промпт для начала следующей сессии
 
 ```
 Прочитай HANDOFF.md в корне проекта.
 
 Подтверди что понял:
-1. AI landmark detection работает (коммит d312880 исправил масштабирование)
-2. Главная проблема: производительность — анализ ~60с + TFJS ~30с = ~90с суммарно
-3. Критические gotchas: mediapipe-stub, turbopack.resolveAlias, cache key v2, natural-image coords
-4. Приоритет 0: таймер 30→60с на /scan/analyzing, апгрейд Render, preload TFJS
+1. БД — pg через Supabase Transaction Pooler порт 6543. Пароль DnRIB28h50WxOcGY (без скобок!)
+2. Сервис был сломан из-за скобок в пароле после обслуживания Supabase 26 мая. Починено 2026-06-02
+3. GetCourse виджет на шаге email — нужна живая проверка что postMessage перехватывается
+4. GetCourse Retry cron на cron-job.org — Inactive, надо включить
+5. GetCourse дожим (48ч, не-кликнувшие) не настроен — инструкция в разделе 6
 
 Затем спроси что делаем сегодня.
 ```
