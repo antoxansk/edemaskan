@@ -5,16 +5,25 @@ let _pool: Pool | null = null;
 
 function getPool(): Pool {
   if (!_pool) {
-    if (!process.env.DATABASE_URL) {
+    const dbUrl = (process.env.DATABASE_URL ?? "").trim();
+    if (!dbUrl) {
       console.error("[db] DATABASE_URL is not set — all queries will fail");
+    } else {
+      // Log only the host part for diagnostics, never the password
+      try {
+        const u = new URL(dbUrl);
+        console.log(`[db] connecting to ${u.hostname}:${u.port} as ${u.username}`);
+      } catch {
+        console.error("[db] DATABASE_URL is not a valid URL");
+      }
     }
-    const isLocal = (process.env.DATABASE_URL ?? "").includes("localhost");
+    const isLocal = dbUrl.includes("localhost");
     _pool = new Pool({
-      connectionString:      process.env.DATABASE_URL,
-      ssl:                   isLocal ? false : { rejectUnauthorized: false },
-      max:                   10,
-      idleTimeoutMillis:     30_000,
-      connectionTimeoutMillis: 5_000,
+      connectionString:        dbUrl || undefined,
+      ssl:                     isLocal ? false : { rejectUnauthorized: false },
+      max:                     10,
+      idleTimeoutMillis:       30_000,
+      connectionTimeoutMillis: 10_000,
     });
   }
   return _pool;

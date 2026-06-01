@@ -9,6 +9,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Show safe diagnostics about DATABASE_URL
+  const dbUrl = (process.env.DATABASE_URL ?? "").trim();
+  let urlInfo: Record<string, string> = { set: dbUrl ? "yes" : "NO — MISSING" };
+  if (dbUrl) {
+    try {
+      const u = new URL(dbUrl);
+      urlInfo = { host: u.hostname, port: u.port, user: u.username, db: u.pathname.slice(1) };
+    } catch {
+      urlInfo = { set: "yes", parse_error: "invalid URL format" };
+    }
+  }
+
   try {
     const rows = await query<{ now: string; version: string }>(
       "SELECT NOW() as now, version() as version",
@@ -30,6 +42,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      url: urlInfo,
       db_time: row?.now,
       db_version: row?.version?.split(" ")[0],
       tables: tables.map((t) => t.tablename),
@@ -37,6 +50,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, url: urlInfo, error: message }, { status: 500 });
   }
 }
